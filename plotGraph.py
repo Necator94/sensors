@@ -1,7 +1,9 @@
 import matplotlib
 import matplotlib.pyplot as plt
 import sys
-
+from matplotlib.gridspec import GridSpec
+from matplotlib.gridspec import GridSpec
+matplotlib.rcParams.update({"figure.figsize": (20.0,12.0)})
 
 xBandData_ = []
 xBandTime_ = []
@@ -38,37 +40,42 @@ for line in srf08Distancetxt:
 srf08Distancetxt.close()
 
 plt.figure(1)
-#plt.subplots_adjust(hspace = .4)
+plt.subplots_adjust(hspace = .4)
 
 tl = 0
 th = 30
+if int (sys.argv[1]) < 2 :
+	plt.suptitle("Sensors response for " + sys.argv[1] + " meter, " + sys.argv[2], fontsize = 15)
+else:
+	plt.suptitle("Sensors response for " + sys.argv[1] + " meters, " + sys.argv[2], fontsize = 15)
 #srf08
-plt.subplot(311)
-plt.plot(srf08Time_, srf08Data_, 'g')
-plt.scatter(srf08Time_, srf08Data_)
+gs1 = GridSpec(3, 3)
+gs1.update(left=0.03, right=0.98, wspace=0)
 
-for k in xrange(len(srfDistance_)):
-	if float(srf08Data_[k]) != 0:
-    		plt.text(srf08Time_[k],float(srf08Data_[k]) + 0.1, srfDistance_[k], rotation='vertical', fontsize=8, horizontalalignment='left',verticalalignment='bottom',)
-
-plt.axis([tl,th,0,1.5])
-plt.ylabel('Motion status')
-plt.title('Ultrasonic SRF08 sensor')
-
-#pir
-plt.subplot(312)
-plt.plot(pirTime_, pirData_, 'r')
-plt.axis([tl,th,0,1.5])
+pir = plt.subplot(gs1[1,:])
+pir.plot(pirTime_, pirData_, 'r')
+plt.axis([tl,th,0,1.1])
 plt.ylabel('Motion status')
 plt.title('PIR sensor')
 
-#x-band
-plt.subplot(313)
-plt.plot(xBandTime_, xBandData_, 'b')
-plt.axis([tl,th,0,1.5])
+srf08 = plt.subplot(gs1[:1, :])
+srf08.plot(srf08Time_, srf08Data_, 'g')
+plt.axis([tl,th,0,1.1])
+plt.ylabel('Motion status')
+plt.title('Ultrasonic SRF08 sensor')
+
+xband = plt.subplot(gs1[-1, :])
+xband.plot(xBandTime_, xBandData_, 'b')
+plt.axis([tl,th,0,1.1])
 plt.ylabel('Motion status')
 plt.xlabel('Time, s')
 plt.title('X-band motion sensor')
 
-plt.show()
-#plt.savefig("Plot.svg")
+if int (sys.argv[1]) < 10 :
+	plt.savefig("/home/necator/Dropbox/experiments/night_experiment/" + "0" + sys.argv[1] + "_meters.png")
+else :
+	plt.savefig("/home/necator/Dropbox/experiments/night_experiment/" + sys.argv[1] + "_meters.png")
+#plt.show()
+
+
+
