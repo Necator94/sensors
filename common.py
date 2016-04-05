@@ -1,6 +1,18 @@
+import Adafruit_BBIO.GPIO as GPIO
 import time
 from Adafruit_I2C import Adafruit_I2C as bus
 from collections import Counter
+
+#pir
+GPIO.setup("P8_7", GPIO.IN)    		# out pin
+GPIO.setup("P8_12", GPIO.OUT)    	# LED  pin 
+
+#x-band
+GPIO.setup("P8_8", GPIO.IN)	    	# out pin
+GPIO.setup("P8_10", GPIO.OUT)    	# LED  pin 
+
+#srf08
+GPIO.setup("P8_14", GPIO.OUT)    	# LED  pin 
 
 def find_majority(k):
         myMap = {}
@@ -51,9 +63,28 @@ locations = {
 31: '9.14-9.39m  	(9142-9394mm)',
 32: 'None'
 }
-k = 0
 window = [32] * 15
-while True :
+
+while True:
+	
+	#pir
+	if GPIO.input("P8_7"):
+    		GPIO.output("P8_12", GPIO.HIGH)
+	#	print("HIGH")
+	else:
+		GPIO.output("P8_12", GPIO.LOW)
+   	#	print("LOW")
+	
+	#x-band
+	if GPIO.input("P8_8") :
+    		GPIO.output("P8_10", GPIO.HIGH)
+	#	print("HIGH")
+	#	time.sleep(2)
+	else:
+		GPIO.output("P8_10", GPIO.LOW)
+   	#	print("LOW")
+
+	#srf08
 	bus.write8(i2c, 0, 84)
 	time.sleep(0.07)
 	ranging_result = []
@@ -69,8 +100,10 @@ while True :
 
 	majority = find_majority(window)
 	if len(window) - majority[1] > 2:
-		print 'motion detected', locations[majority[0]]	
-
+	#	print 'motion detected', locations[majority[0]]	
+    		GPIO.output("P8_14", GPIO.HIGH)
+	else:
+		GPIO.output("P8_14", GPIO.LOW)
 
 
 
