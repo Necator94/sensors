@@ -1,3 +1,6 @@
+import matplotlib
+matplotlib.use("AGG")
+import matplotlib.pyplot as plt
 import Adafruit_BBIO.GPIO as GPIO
 import time
 from Adafruit_I2C import Adafruit_I2C as bus
@@ -64,25 +67,29 @@ locations = {
 32: 'None'
 }
 window = [32] * 15
-
-while True:
+k = 0
+pirStatus = []
+xBandStatus = []
+srf08Status = []
+pirTimeRow = []
+pirTime = []
+while k < 520:
 	
 	#pir
 	if GPIO.input("P8_7"):
     		GPIO.output("P8_12", GPIO.HIGH)
-	#	print("HIGH")
+		pirFlag = 1
 	else:
 		GPIO.output("P8_12", GPIO.LOW)
-   	#	print("LOW")
+		pirFlag = 0  
 	
 	#x-band
 	if GPIO.input("P8_8") :
     		GPIO.output("P8_10", GPIO.HIGH)
-	#	print("HIGH")
-	#	time.sleep(2)
+		xBandFlag = 1
 	else:
 		GPIO.output("P8_10", GPIO.LOW)
-   	#	print("LOW")
+		xBandFlag = 0
 
 	#srf08
 	bus.write8(i2c, 0, 84)
@@ -102,12 +109,45 @@ while True:
 	if len(window) - majority[1] > 2:
 	#	print 'motion detected', locations[majority[0]]	
     		GPIO.output("P8_14", GPIO.HIGH)
+		srf08Flag = 1
 	else:
 		GPIO.output("P8_14", GPIO.LOW)
+		srf08Flag = 0
 
 
+	pirStatus.append(pirFlag)
+	xBandStatus.append(xBandFlag)
+	srf08Status.append(srf08Flag)
+	pirTimeRow.append(time.time())
+	pirTime.append(pirTimeRow[k] - pirTimeRow[0])
+	k +=1
 
+plt.figure(1)
+plt.subplots_adjust(hspace=.4)
 
+#srf08
+plt.subplot(311)
+plt.plot(pirTime, srf08Status, 'g')
+plt.axis([0,10,0,1.5])
+plt.ylabel('Motion status')
+plt.title('Ultrasonic SRF08 sensor')
+
+#pir
+plt.subplot(312)
+plt.plot(pirTime, pirStatus, 'r')
+plt.axis([0,10,0,1.5])
+plt.ylabel('Motion status')
+plt.title('PIR sensor')
+
+#x-band
+plt.subplot(313)
+plt.plot(pirTime, xBandStatus, 'b')
+plt.axis([0,10,0,1.5])
+plt.ylabel('Motion status')
+plt.xlabel('Time, s')
+plt.title('X-band motion sensor')
+
+plt.savefig("kek.svg")
 
 
 
