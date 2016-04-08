@@ -5,17 +5,10 @@ import Adafruit_BBIO.GPIO as GPIO
 import time
 from Adafruit_I2C import Adafruit_I2C as bus
 from collections import Counter
-
-#pir
-GPIO.setup("P8_7", GPIO.IN)    		# out pin
-GPIO.setup("P8_12", GPIO.OUT)    	# LED  pin 
-
-#x-band
-GPIO.setup("P8_8", GPIO.IN)	    	# out pin
-GPIO.setup("P8_10", GPIO.OUT)    	# LED  pin 
-
-#srf08
-GPIO.setup("P8_14", GPIO.OUT)    	# LED  pin 
+import threading
+import Queue
+import sys
+import thread
 
 def find_majority(k):
         myMap = {}
@@ -27,10 +20,110 @@ def find_majority(k):
                 if myMap[n] > maximum[1]: maximum = (n,myMap[n])
         return maximum
 
-i2c = bus(0x70)
-bus.write8(i2c, 2, 255)
-bus.write8(i2c, 1, 0)
+def xband_pir(pin, cycles, outData, outTime, name):
+	cycles = cycles * 350
+	print name, 'started'
+	GPIO.setup(pin[0], GPIO.IN)	    	# out pin
+	GPIO.setup(pin[1], GPIO.OUT)    	# LED  pin 
 
+	data = []
+	rowTime = []
+	time_ = []
+	i = 0
+
+	while i < cycles:
+		if GPIO.input(pin[0]) :
+    			GPIO.output(pin[1], GPIO.HIGH)
+			flag = 1
+		else:
+			GPIO.output(pin[1], GPIO.LOW)
+			flag = 0
+
+		data.append(flag)
+		rowTime.append(time.time())
+		time_.append(rowTime[i] - rowTime[0])
+		i += 1
+	print name, 'finished'
+        outData.put(data)
+	outTime.put(time_)
+
+
+def srf08 (pin, cycles, outData, outTime, name):
+	print name, 'started'
+	GPIO.setup(pin[1], GPIO.OUT)    	 
+	i2c = bus(0x70)
+	bus.write8(i2c, 2, 255)
+	bus.write8(i2c, 1, 0)
+	window = [32] * 15
+	data = []
+	time_ = []
+	rowTime = []	
+	i = 0
+
+	while i < cycles:
+		bus.write8(i2c, 0, 84)
+		time.sleep(0.07)
+		ranging_result = []
+		n = 4
+	
+		while n < 36 :
+			ranging_result.append(bus.readU8(i2c, n)) 
+			n += 1
+		for index, element in enumerate(ranging_result) :		
+     			if element == 255:
+				window.insert(0, index)
+				del window[-1]
+				break		
+	
+		majority = find_majority(window)
+		if len(window) - majority[1] > 2:
+		#	print 'motion detected', locations[majority[0]]	
+    			GPIO.output(pin[1], GPIO.HIGH)
+			flag = 1
+		else:
+			GPIO.output(pin[1], GPIO.LOW)
+			flag = 0
+
+		data.append(flag)
+		rowTime.append(time.time())
+		time_.append(rowTime[i] - rowTime[0])
+		i += 1
+	print name, 'finished'
+	outData.put(data)
+	outTime.put(time_)
+
+# 0 - out pin     1 - LED pin
+xBandPins = {0 : 'P8_8', 1 : 'P8_10'}	
+pirPins = {0 : 'P8_7', 1 : 'P8_12' }
+srf08Pins = {1: 'P8_14'}
+
+xBandData = Queue.Queue()
+xBandTime = Queue.Queue()
+pirData = Queue.Queue()
+pirTime = Queue.Queue()
+srf08Data = Queue.Queue()
+srf08Time = Queue.Queue()
+
+xBandThread = threading.Thread(target = xband_pir, args = (xBandPins, int(sys.argv[1]), xBandData, xBandTime, 'xBand'))
+pirThread = threading.Thread(target = xband_pir, args = (pirPins, int(sys.argv[1]), pirData, pirTime, 'pir'))
+srf08Thread = threading.Thread(target = srf08, args = (srf08Pins, int(sys.argv[1]), srf08Data, srf08Time, 'sfr08'))
+
+xBandThread.start()
+pirThread.start()
+srf08Thread.start()
+
+xBandThread.join()
+pirThread.join()
+srf08Thread.join()
+
+xBandData_ = xBandData.get()
+xBandTime_ = xBandTime.get()
+pirData_ = pirData.get()
+pirTime_ = pirTime.get()
+srf08Data_ = srf08Data.get()
+srf08Time_ = srf08Time.get()
+'''
+#srf08
 locations = {
 0:  '0-0.35m    	(0-352mm)', 
 1:  '0.35-0.7m  	(353-705mm)', 
@@ -66,82 +159,28 @@ locations = {
 31: '9.14-9.39m  	(9142-9394mm)',
 32: 'None'
 }
-window = [32] * 15
-k = 0
-pirStatus = []
-xBandStatus = []
-srf08Status = []
-pirTimeRow = []
-pirTime = []
-while k < 520:
-	
-	#pir
-	if GPIO.input("P8_7"):
-    		GPIO.output("P8_12", GPIO.HIGH)
-		pirFlag = 1
-	else:
-		GPIO.output("P8_12", GPIO.LOW)
-		pirFlag = 0  
-	
-	#x-band
-	if GPIO.input("P8_8") :
-    		GPIO.output("P8_10", GPIO.HIGH)
-		xBandFlag = 1
-	else:
-		GPIO.output("P8_10", GPIO.LOW)
-		xBandFlag = 0
-
-	#srf08
-	bus.write8(i2c, 0, 84)
-	time.sleep(0.07)
-	ranging_result = []
-	i = 4
-	while i < 36 :
-		ranging_result.append(bus.readU8(i2c, i)) 
-		i +=1
-	for index, element in enumerate(ranging_result) :		
-     		if element == 255:
-			window.insert(0, index)
-			del window[-1]
-			break		
-
-	majority = find_majority(window)
-	if len(window) - majority[1] > 2:
-	#	print 'motion detected', locations[majority[0]]	
-    		GPIO.output("P8_14", GPIO.HIGH)
-		srf08Flag = 1
-	else:
-		GPIO.output("P8_14", GPIO.LOW)
-		srf08Flag = 0
-
-
-	pirStatus.append(pirFlag)
-	xBandStatus.append(xBandFlag)
-	srf08Status.append(srf08Flag)
-	pirTimeRow.append(time.time())
-	pirTime.append(pirTimeRow[k] - pirTimeRow[0])
-	k +=1
+'''
 
 plt.figure(1)
 plt.subplots_adjust(hspace=.4)
 
 #srf08
 plt.subplot(311)
-plt.plot(pirTime, srf08Status, 'g')
+plt.plot(srf08Time_, srf08Data_, 'g')
 plt.axis([0,10,0,1.5])
 plt.ylabel('Motion status')
 plt.title('Ultrasonic SRF08 sensor')
 
 #pir
 plt.subplot(312)
-plt.plot(pirTime, pirStatus, 'r')
+plt.plot(pirTime_, pirData_, 'r')
 plt.axis([0,10,0,1.5])
 plt.ylabel('Motion status')
 plt.title('PIR sensor')
 
 #x-band
 plt.subplot(313)
-plt.plot(pirTime, xBandStatus, 'b')
+plt.plot(xBandTime_, xBandData_, 'b')
 plt.axis([0,10,0,1.5])
 plt.ylabel('Motion status')
 plt.xlabel('Time, s')
