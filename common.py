@@ -9,6 +9,7 @@ import threading
 import Queue
 import sys
 import thread
+import os
 
 def find_majority(k):
         myMap = {}
@@ -48,7 +49,7 @@ def xband_pir(pin, cycles, outData, outTime, name):
 	outTime.put(time_)
 
 
-def srf08 (pin, cycles, outData, outTime, name):
+def srf08 (pin, cycles, outData, outTime, name, location):
 	print name, 'started'
 	GPIO.setup(pin[1], GPIO.OUT)    	 
 	i2c = bus(0x70)
@@ -58,6 +59,7 @@ def srf08 (pin, cycles, outData, outTime, name):
 	data = []
 	time_ = []
 	rowTime = []	
+	Location = []
 	i = 0
 
 	while i < cycles:
@@ -83,7 +85,7 @@ def srf08 (pin, cycles, outData, outTime, name):
 		else:
 			GPIO.output(pin[1], GPIO.LOW)
 			flag = 0
-
+		Location.append(majority)
 		data.append(flag)
 		rowTime.append(time.time())
 		time_.append(rowTime[i] - rowTime[0])
@@ -91,6 +93,7 @@ def srf08 (pin, cycles, outData, outTime, name):
 	print name, 'finished'
 	outData.put(data)
 	outTime.put(time_)
+	location.put(Location)
 
 # 0 - out pin     1 - LED pin
 xBandPins = {0 : 'P8_8', 1 : 'P8_10'}	
@@ -103,10 +106,11 @@ pirData = Queue.Queue()
 pirTime = Queue.Queue()
 srf08Data = Queue.Queue()
 srf08Time = Queue.Queue()
+srfDistance = Queue.Queue()
 
 xBandThread = threading.Thread(target = xband_pir, args = (xBandPins, int(sys.argv[1]), xBandData, xBandTime, 'xBand'))
 pirThread = threading.Thread(target = xband_pir, args = (pirPins, int(sys.argv[1]), pirData, pirTime, 'pir'))
-srf08Thread = threading.Thread(target = srf08, args = (srf08Pins, int(sys.argv[1]), srf08Data, srf08Time, 'sfr08'))
+srf08Thread = threading.Thread(target = srf08, args = (srf08Pins, int(sys.argv[1]), srf08Data, srf08Time, 'sfr08', srfDistance))
 
 xBandThread.start()
 pirThread.start()
@@ -122,6 +126,8 @@ pirData_ = pirData.get()
 pirTime_ = pirTime.get()
 srf08Data_ = srf08Data.get()
 srf08Time_ = srf08Time.get()
+#srfDistance_ = srfDistance.get()
+#print srfDistance_
 '''
 #srf08
 locations = {
@@ -161,6 +167,22 @@ locations = {
 }
 '''
 
+file = open("xBandData.txt", "w")
+for index in range(len(xBandData_)):
+    file.write(str(xBandData_[index]) + " " + str(xBandTime_[index]) + "\n")
+file.close()
+
+file = open("pirData.txt", "w")
+for index in range(len(pirData_)):
+    file.write(str(pirData_[index])+ " " + str(pirTime_[index]) + "\n")
+file.close()
+
+file = open("srf08Data.txt", "w")
+for index in range(len(srf08Data_)):
+    file.write(str(srf08Data_[index])+ " " + str(srf08Time_[index]) + "\n")
+file.close()
+
+
 plt.figure(1)
 plt.subplots_adjust(hspace=.4)
 
@@ -186,7 +208,9 @@ plt.ylabel('Motion status')
 plt.xlabel('Time, s')
 plt.title('X-band motion sensor')
 
-plt.savefig("kek.svg")
+plt.savefig("sensorsPlot.svg")
+
+os.system("scp xBandData.txt pirData.txt srf08Data.txt sensorsPlot.svg ivan@10.33.21.174:/home/ivan/sensors")
 
 
 
