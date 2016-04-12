@@ -207,7 +207,7 @@ if sys.argv[2] == 'on':
 	plt.xlabel('Time, s')
 	plt.title('X-band motion sensor')
 
-	plt.savefig("sensorsPlot.svg")
+	plt.savefig("BBBPlot.svg")
 
 	os.system("scp xBandData.txt pirData.txt srf08Data.txt sensorsPlot.svg ivan@10.33.21.174:/home/ivan/sensors")
 
