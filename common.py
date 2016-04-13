@@ -115,7 +115,8 @@ def srf08 (pin, cycles, outData, outTime, name, location):
 				window.append(index)
 				break
 		majority = find_majority(window)
-		Location.append(locations[majority[0]])	
+		print majority[0]
+#		Location.append(locations[majority[0]])	
 		if len(window) - majority[1] > 2 :
 			GPIO.output(pin[1], GPIO.HIGH)
 			flag = 1
@@ -162,7 +163,7 @@ pirData_ = pirData.get()
 pirTime_ = pirTime.get()
 srf08Data_ = srf08Data.get()
 srf08Time_ = srf08Time.get()
-srfDistance_ = srfDistance.get()
+#srfDistance_ = srfDistance.get()
 
 file = open("xBandData.txt", "w")
 for index in range(len(xBandData_)):
@@ -178,12 +179,12 @@ file = open("srf08Data.txt", "w")
 for index in range(len(srf08Data_)):
     file.write(str(srf08Data_[index])+ " " + str(srf08Time_[index]) + "\n")
 file.close()
-
+'''
 file = open("srf08Distance.txt", "w")
 for index in range(len(srf08Data_)):
     file.write(str(srfDistance_[index]) + "\n")
 file.close()
-
+'''
 '''
 if sys.argv[2] == 'on':
 	plt.figure(1)
