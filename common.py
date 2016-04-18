@@ -98,7 +98,7 @@ def srf08 (pin, cycles, outData, outTime, name, location):
 	rowTime = []	
 	Location = []
 	i = 0
-	file = open("ranging.txt", "w")
+	
 	while i < cycles:
 		bus.write8(i2c, 0, 84)
 		time.sleep(0.07)
@@ -163,23 +163,24 @@ pirTime_ = pirTime.get()
 srf08Data_ = srf08Data.get()
 srf08Time_ = srf08Time.get()
 srfDistance_ = srfDistance.get()
+#kek = 
 
-file = open("xBandData.txt", "w")
+file = open("xBandData" + "_" + sys.argv[2] + ".txt", "w")
 for index in range(len(xBandData_)):
     file.write(str(xBandData_[index]) + " " + str(xBandTime_[index]) + "\n")
 file.close()
 
-file = open("pirData.txt", "w")
+file = open("pirData" + "_" + sys.argv[2] + ".txt", "w")
 for index in range(len(pirData_)):
     file.write(str(pirData_[index])+ " " + str(pirTime_[index]) + "\n")
 file.close()
 
-file = open("srf08Data.txt", "w")
+file = open("srf08Data" + "_" + sys.argv[2] + ".txt", "w")
 for index in range(len(srf08Data_)):
     file.write(str(srf08Data_[index])+ " " + str(srf08Time_[index]) + "\n")
 file.close()
 
-file = open("srf08Distance.txt", "w")
+file = open("srf08Distance" + "_" + sys.argv[2] + ".txt", "w")
 for index in range(len(srf08Data_)):
     file.write(str(srfDistance_[index]) + "\n")
 file.close()
