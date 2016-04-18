@@ -12,6 +12,7 @@ import thread
 import os
 
 locations = {
+None: 'None',
 0:  '0-352mm', 
 1:  '353-705mm', 
 2:  '706-1057mm', 
@@ -70,6 +71,7 @@ def xband_pir(pin, cycles, outData, outTime, name):
 	while i < cycles:
 		if GPIO.input(pin[0]) :
     			GPIO.output(pin[1], GPIO.HIGH)
+    			#print "motion detected" + name
 			flag = 1
 		else:
 			GPIO.output(pin[1], GPIO.LOW)
@@ -96,7 +98,7 @@ def srf08 (pin, cycles, outData, outTime, name, location):
 	rowTime = []	
 	Location = []
 	i = 0
-
+	file = open("ranging.txt", "w")
 	while i < cycles:
 		bus.write8(i2c, 0, 84)
 		time.sleep(0.07)
@@ -106,27 +108,24 @@ def srf08 (pin, cycles, outData, outTime, name, location):
 		while n < 36 :
 			ranging_result.append(bus.readU8(i2c, n)) 
 			n += 1
-		for index, element in enumerate(ranging_result) :		
-     			if element == 255 and len(window) == 15:
-				window.insert(0, index)
-				del window[-1]
+	
+	#********
+		for index, element in enumerate(ranging_result):
+			if element == 255: 
+				GPIO.output(pin[1], GPIO.HIGH)
+				flag = 1
+				Location.append(locations[index])
 				break		
-			elif element == 255 and len(window) < 15:
-				window.append(index)
-				break
-		majority = find_majority(window)
-		print majority[0]
-#		Location.append(locations[majority[0]])	
-		if len(window) - majority[1] > 2 :
-			GPIO.output(pin[1], GPIO.HIGH)
-			flag = 1
-		else:
-			GPIO.output(pin[1], GPIO.LOW)
-			flag = 0
+			else:
+				GPIO.output(pin[1], GPIO.LOW)
+				flag = 0
+				Location.append(locations[index])
 		data.append(flag)
 		rowTime.append(time.time())
 		time_.append(rowTime[i] - rowTime[0])
 		i += 1
+
+	#**********
 	print name, 'finished'
 	outData.put(data)
 	outTime.put(time_)
@@ -163,7 +162,7 @@ pirData_ = pirData.get()
 pirTime_ = pirTime.get()
 srf08Data_ = srf08Data.get()
 srf08Time_ = srf08Time.get()
-#srfDistance_ = srfDistance.get()
+srfDistance_ = srfDistance.get()
 
 file = open("xBandData.txt", "w")
 for index in range(len(xBandData_)):
@@ -179,12 +178,12 @@ file = open("srf08Data.txt", "w")
 for index in range(len(srf08Data_)):
     file.write(str(srf08Data_[index])+ " " + str(srf08Time_[index]) + "\n")
 file.close()
-'''
+
 file = open("srf08Distance.txt", "w")
 for index in range(len(srf08Data_)):
     file.write(str(srfDistance_[index]) + "\n")
 file.close()
-'''
+
 '''
 if sys.argv[2] == 'on':
 	plt.figure(1)

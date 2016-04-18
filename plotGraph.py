@@ -37,7 +37,7 @@ for line in srf08Distancetxt:
 srf08Distancetxt.close()
 
 plt.figure(1)
-plt.subplots_adjust(hspace = .4)
+#plt.subplots_adjust(hspace = .4)
 
 tl = 0
 th = 30
@@ -45,11 +45,11 @@ th = 30
 plt.subplot(311)
 plt.plot(srf08Time_, srf08Data_, 'g')
 plt.scatter(srf08Time_, srf08Data_)
-'''
+
 for k in xrange(len(srfDistance_)):
 	if float(srf08Data_[k]) != 0:
     		plt.text(srf08Time_[k],float(srf08Data_[k]) + 0.1, srfDistance_[k], rotation='vertical', fontsize=8, horizontalalignment='left',verticalalignment='bottom',)
-'''
+
 plt.axis([tl,th,0,1.5])
 plt.ylabel('Motion status')
 plt.title('Ultrasonic SRF08 sensor')
