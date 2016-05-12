@@ -23,6 +23,20 @@ for line in row_data:
 	pirTime.append(string[3])	
 row_data.close()
 
+period = []
+time_ = []
+for i, element in enumerate(xBandData):
+	if element > xBandData[i - 1]:
+		time_.append(xBandTime[i])
+		
+for i, element in enumerate(a):
+	if i > 0:
+		period.append(1/(time_[i] - time_[i-1]))
+
+time_.insert(0,0)
+period.insert(0,0)
+period.append(0)
+
 plt.figure(1)
 plt.subplots_adjust(hspace = .4)
 
@@ -47,6 +61,11 @@ plt.ylabel('Motion status')
 plt.xlabel('Time, s')
 plt.title('X-band motion sensor')
 
+pir = plt.subplot(1,1,1)
+pir.plot( a,b, 'r')
+
+plt.ylabel('Motion status')
+plt.title('PIR sensor')
 plt.savefig(sys.argv[3] + sys.argv[1] + ".png")
 
 plt.show()
