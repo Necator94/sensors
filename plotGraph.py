@@ -17,10 +17,10 @@ pirTime = []
 row_data = open("row_data_" + sys.argv[1] + ".txt", "r")
 for line in row_data:
 	string = line.split()
-	xBandData.append(string[0])
-	xBandTime.append(string[1])
-	pirData.append(string[2])
-	pirTime.append(string[3])	
+	xBandData.append(float(string[0]))
+	xBandTime.append(float(string[1]))
+	pirData.append(float(string[2]))
+	pirTime.append(float(string[3]))	
 row_data.close()
 
 period = []
@@ -29,7 +29,7 @@ for i, element in enumerate(xBandData):
 	if element > xBandData[i - 1]:
 		time_.append(xBandTime[i])
 		
-for i, element in enumerate(a):
+for i, element in enumerate(time_):
 	if i > 0:
 		period.append(1/(time_[i] - time_[i-1]))
 
@@ -45,7 +45,7 @@ th = 30
 
 plt.suptitle("Sensors response for " + sys.argv[1] + ", " + sys.argv[2], fontsize = 15)
 #srf08
-gs1 = GridSpec(2, 1)
+gs1 = GridSpec(3, 1)
 gs1.update(left=0.03, right=0.98, wspace=0)
 
 pir = plt.subplot(gs1[0])
@@ -58,14 +58,14 @@ xband = plt.subplot(gs1[1])
 xband.plot(xBandTime, xBandData, 'b')
 plt.axis([tl,th,0,1.1])
 plt.ylabel('Motion status')
-plt.xlabel('Time, s')
+
 plt.title('X-band motion sensor')
 
-pir = plt.subplot(1,1,1)
-pir.plot( a,b, 'r')
-
+dm = plt.subplot(gs1[2])
+dm.plot( time_,period, 'r')
 plt.ylabel('Motion status')
+plt.xlabel('Time, s')
 plt.title('PIR sensor')
-plt.savefig(sys.argv[3] + sys.argv[1] + ".png")
+#plt.savefig(sys.argv[3] + sys.argv[1] + ".png")
 
 plt.show()
