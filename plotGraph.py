@@ -39,15 +39,48 @@ period.insert(0,0)
 period.append(0)
 # /demodulation
 
+
+#new
+new = []
+new_time = []
+kek = int(sys.argv[4])
+a = 0
+for i, element in enumerate(xBandData):
+	
+
+	if i == kek:
+		
+		for n, l in enumerate (xBandData[i-kek : i+kek]):
+			if l == 1:
+				a += l
+		new.append(a)
+		new_time.append(xBandTime[i])
+		#print a
+	if i > kek and i < len(xBandData) - kek:
+		#print xBandData[i - kek] , kek
+		a = a - xBandData[i - kek] + xBandData [i + kek]
+		#print a
+		new.append(a)
+		new_time.append(xBandTime[i])
+
+
+
+
+
+
+
+
 plt.figure(1)
 plt.subplots_adjust(hspace = .4)
+
+
 
 tl = 0
 th = 30
 
 plt.suptitle("Sensors response for " + sys.argv[1] + " meters, " + sys.argv[2], fontsize = 15)
 #srf08
-gs1 = GridSpec(3, 1)
+gs1 = GridSpec(4, 1)
 gs1.update(left=0.04, right=0.98, wspace=0)
 
 pir = plt.subplot(gs1[0])
@@ -64,7 +97,13 @@ plt.ylabel('Motion status')
 plt.xlabel('(b)')
 plt.title('X-band detector')
 
-dm = plt.subplot(gs1[2])
+dm1 = plt.subplot(gs1[2])
+dm1.plot(new_time, new, 'r')
+plt.ylabel('Motion status')
+plt.xlabel('(b)')
+plt.title('X-band detector')
+
+dm = plt.subplot(gs1[3])
 dm.plot( time_,period, 'b')
 plt.ylabel('Motion status')
 plt.xlabel('Time, s'+ '\n'+'(c)')
