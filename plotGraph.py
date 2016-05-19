@@ -4,7 +4,7 @@ import sys
 from matplotlib.gridspec import GridSpec
 from matplotlib.gridspec import GridSpec
 matplotlib.rcParams.update({"figure.figsize": (20.0,12.0)})
-
+import random
 #sys.argv[1] - number of file e.g. *.txt
 #sys.argv[2] - comment to plot, e.g. low sensetivity
 #sys.argv[3] - path to save file
@@ -23,7 +23,7 @@ for line in row_data:
 	pirTime.append(float(string[3]))	
 row_data.close()
 
-# demodulation
+# demodulation 1
 period = []
 time_ = []
 for i, element in enumerate(xBandData):
@@ -37,38 +37,44 @@ for i, element in enumerate(time_):
 time_.insert(0,0)
 period.insert(0,0)
 period.append(0)
-# /demodulation
+# /demodulation 1
 
 
-#new
+#demodulation 2
+
 new = []
+test = []
 new_time = []
-kek = int(sys.argv[4])
+window = int(sys.argv[4])
 a = 0
 for i, element in enumerate(xBandData):
-	
-
-	if i == kek:
-		
-		for n, l in enumerate (xBandData[i-kek : i+kek]):
+	if i == window:
+		for n, l in enumerate (xBandData[i-window : i+window]):
 			if l == 1:
 				a += l
 		new.append(a)
 		new_time.append(xBandTime[i])
-		#print a
-	if i > kek and i < len(xBandData) - kek:
-		#print xBandData[i - kek] , kek
-		a = a - xBandData[i - kek] + xBandData [i + kek]
-		#print a
+	if i > window and i < len(xBandData) - window:
+		a = a - xBandData[i - window] + xBandData [i + window]
 		new.append(a)
 		new_time.append(xBandTime[i])
+# /demodulation 2
+# / add lie 1
+for i, element in enumerate(new [ : window]):
+	test.insert(0, new[i] - 300)
+	new_time.insert(i,(xBandTime[i]))
+print len(test)
+new = test + new 
+#  add lie 2
+test = []
 
-
-
-
-
-
-
+for i, element in enumerate(new [ len(new) - window : ]):
+	test.insert(0, new[len(new) - window + i] - 200)
+	
+	new_time.append(xBandTime[len(xBandTime) - window + i ])
+print len(test)
+new = new + test 
+# / add lie 2
 
 plt.figure(1)
 plt.subplots_adjust(hspace = .4)
@@ -81,34 +87,33 @@ th = 30
 plt.suptitle("Sensors response for " + sys.argv[1] + " meters, " + sys.argv[2], fontsize = 15)
 #srf08
 gs1 = GridSpec(4, 1)
-gs1.update(left=0.04, right=0.98, wspace=0)
+gs1.update(left=0.05, right=0.98, wspace=0)
 
 pir = plt.subplot(gs1[0])
 pir.plot(pirTime, pirData, 'r')
 plt.axis([tl,th,0,1.1])
 plt.ylabel('Motion status')
-plt.title('PIR detector')
-plt.xlabel('(a)')
+plt.title('PIR detector signal, (a)')
 
 xband = plt.subplot(gs1[1])
 xband.plot(xBandTime, xBandData, 'b')
 plt.axis([tl,th,0,1.1])
 plt.ylabel('Motion status')
-plt.xlabel('(b)')
-plt.title('X-band detector')
+plt.title('X-band detector signal, (b)')
 
-dm1 = plt.subplot(gs1[2])
-dm1.plot(new_time, new, 'r')
+
+dm = plt.subplot(gs1[2])
+dm.plot( time_,period, 'k')
 plt.ylabel('Motion status')
-plt.xlabel('(b)')
-plt.title('X-band detector')
+plt.title('Frequency demodulation, (c)')
 
-dm = plt.subplot(gs1[3])
-dm.plot( time_,period, 'b')
+dm1 = plt.subplot(gs1[3])
+dm1.plot( new_time, new, 'g')
 plt.ylabel('Motion status')
-plt.xlabel('Time, s'+ '\n'+'(c)')
+plt.xlabel('Time, s')
+plt.title('Convolutional demodulation, (d)')
 
-plt.title('Demodulated signal for X-band detector ')
+
 plt.savefig(sys.argv[3] + sys.argv[1] + ".png")
 
 plt.show()
