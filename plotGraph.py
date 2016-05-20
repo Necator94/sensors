@@ -6,6 +6,7 @@ from matplotlib.gridspec import GridSpec
 matplotlib.rcParams.update({"figure.figsize": (20.0,12.0)})
 import random
 import numpy as np
+import math
 #sys.argv[1] - number of file e.g. *.txt
 #sys.argv[2] - comment to plot, e.g. low sensetivity
 #sys.argv[3] - path to save file
@@ -38,27 +39,30 @@ for i,element in enumerate(ideal_space_time):
 		ideal.append(1)
 
 # demodulation 1
-period = []
-time_ = []
+dm1Array = []
+dm1time = []
 for i, element in enumerate(xBandData):
 	if element > xBandData[i - 1]:
-		time_.append(xBandTime[i])
+		dm1time.append(xBandTime[i])
 		
-for i, element in enumerate(time_):
+for i, element in enumerate(dm1time):
 	if i > 0:
-		period.append(1/(time_[i] - time_[i-1]))
+		dm1Array.append(1/(dm1time[i] - dm1time[i-1]))
 
-time_.insert(0,0)
-period.insert(0,0)
-period.append(0)
-# /demodulation 1
+dm1time.insert(0,0)
+dm1Array.insert(0,0)
+dm1Array.append(0)
 
+# estimation level for dm1
+levelDm = []
+level = max(dm1Array) * 20 / 100
+for i in enumerate(dm1Array):
+	levelDm.append(level)
 
 #demodulation 2
-
-new = []
-test = []
-new_time = []
+dm2Array = []
+halfArray = []
+dm2time = []
 window = int(sys.argv[4])
 a = 0
 for i, element in enumerate(xBandData):
@@ -66,41 +70,63 @@ for i, element in enumerate(xBandData):
 		for n, l in enumerate (xBandData[i-window : i+window]):
 			if l == 1:
 				a += l
-		new.append(a)
-		new_time.append(xBandTime[i])
+		dm2Array.append(a)
+		dm2time.append(xBandTime[i])
 	if i > window and i < len(xBandData) - window:
 		a = a - xBandData[i - window] + xBandData [i + window]
-		new.append(a)
-		new_time.append(xBandTime[i])
-# /demodulation 2
+		dm2Array.append(a)
+		dm2time.append(xBandTime[i])
+
 # / add lie 1
-for i, element in enumerate(new [ : window]):
-	test.insert(0, new[i] - 300)
-	new_time.insert(i,(xBandTime[i]))
-
-new = test + new 
+for i, element in enumerate(dm2Array [ : window]):
+	halfArray.insert(0, dm2Array[i] - 300)
+	dm2time.insert(i,(xBandTime[i]))
+dm2Array = halfArray + dm2Array 
 #  add lie 2
-test = []
-
-for i, element in enumerate(new [ len(new) - window : ]):
-	test.insert(0, new[len(new) - window + i] - 200)
-	
-	new_time.append(xBandTime[len(xBandTime) - window + i ])
-
-new = new + test 
+halfArray = []
+for i, element in enumerate(dm2Array [ len(dm2Array) - window : ]):
+	halfArray.insert(0, dm2Array[len(dm2Array) - window + i] - 200)
+	dm2time.append(xBandTime[len(xBandTime) - window + i ])
+dm2Array = dm2Array + halfArray 
 # / add lie 2
+temp = []
+mean = []
+# mean
+for i, element in enumerate(dm2Array):
+	temp.append(element)
+	if i % 2000 == 0:
+		mean.append(sum(temp)/len(temp))
+		temp = []
+temp = []
+stDev = []
+st = []
+q = []
+# standart deviation
+for i, element in enumerate(dm2Array[:50]):
+	mm = sum(dm2Array[:50])/len(dm2Array[:50])
+	temp.append(element-mm)
+s = (sum(temp))/len(temp)
+l = math.sqrt(s)
+print s
+
+		#st = []
+		#q.append(l)
+
+# estimation level for dm2
+level = (max(dm2Array) * 95 / 100)
+levelDm2 = []
+for i in enumerate(dm2Array):
+	levelDm2.append(level)
 
 plt.figure(1)
 plt.subplots_adjust(hspace = .4)
-
-
 
 tl = 0
 th = 30
 
 plt.suptitle("Sensors response for " + sys.argv[1] + " meters, " + sys.argv[2], fontsize = 15)
-#srf08
-gs1 = GridSpec(5, 1)
+
+gs1 = GridSpec(6, 1)
 gs1.update(left=0.05, right=0.98, wspace=0)
 
 idp = plt.subplot(gs1[0])
@@ -121,17 +147,22 @@ plt.axis([tl,th,0,1.1])
 plt.ylabel('Motion status')
 plt.title('X-band detector signal, (c)')
 
-
 dm = plt.subplot(gs1[3])
-dm.plot( time_,period, 'k',linewidth=2)
+dm.plot( dm1time,dm1Array, 'k', linewidth=2)
+dm.plot( dm1time,levelDm,'r--', linewidth=2)
 plt.ylabel('Motion status')
 plt.title('Frequency demodulation X-band detector signal, (d)')
 
 dm1 = plt.subplot(gs1[4])
-dm1.plot( new_time, new, 'g',linewidth=2)
+dm1.plot( dm2time, dm2Array, 'g',linewidth=2)
+dm1.plot( dm2time, levelDm2, 'r--',linewidth=2)
 plt.ylabel('Motion status')
 plt.xlabel('Time, s')
 plt.title('Convolutional demodulation X-band detector signal, (e)')
+
+m = plt.subplot(gs1[5])
+m.plot(l)
+
 
 
 plt.savefig(sys.argv[3] + sys.argv[1] + ".png")
