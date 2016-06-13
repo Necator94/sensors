@@ -1,3 +1,3 @@
 mkdir /mnt/BBB
-sshfs -o allow_other root@10.33.21.67:/root/sensors/ /mnt/BBB
+sshfs -o allow_other root@192.168.7.2:/root/ /mnt/BBB
 
