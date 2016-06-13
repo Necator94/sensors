@@ -29,7 +29,8 @@ def xband_pir(pin, cycles, outData, name):
 	
 	window = int(sys.argv[2])
 	temp = []
-
+	temp_time = []
+	transform_time = []
 	if name == 'PIR sensor':
 		sleepTime = 0.001
 	if name == 'X-Band detector':
@@ -44,9 +45,49 @@ def xband_pir(pin, cycles, outData, name):
 	f = open('test.txt', 'w')
 	while i < cycles:
 		check = GPIO.input(pin[0])
-		data[0].append(check)		
-		data[1].append(time.time() - startTime)
+		#print check
+		data[0].append(check)	
+		t_time = time.time() - startTime
+		#print t_time
+		data[1].append(t_time)
+#___________________________________________________
+# frequency transformation
+		if len(temp) < window:
+			temp.append(check)
+			temp_time.append(t_time)
+			#print '+'
 			
+		else:
+			#print '-'
+			temp.append(check)
+			temp_time.append(t_time)
+			for n, element in enumerate(temp):
+				if element > temp[n - 1] and n > 0:
+					#print n, element
+					transform_time.append(temp_time[n])
+			#print len(transform_time), 'len'
+					
+			for n, element in enumerate(transform_time):
+				#print transform_time[n], n
+				if n > 0:	
+					al = 1/(transform_time[n] - transform_time[n-1])
+					if al > 30:
+						print al
+						GPIO.output(pin[1], GPIO.HIGH)
+					else:
+						GPIO.output(pin[1], GPIO.LOW)
+			temp = []
+			temp_time = []
+			transform_time = []
+
+		i += 1
+	print name, 'finished'
+	outData.put(data)
+
+
+#_________________________________________________
+#convolutional transformation
+'''			
 		if len(data[0]) < window:
 			temp.append(check)
 			sum_value = sum(temp)
@@ -57,7 +98,7 @@ def xband_pir(pin, cycles, outData, name):
 		#print sum_value
 		if sum_value > int(sys.argv[3]):
 			GPIO.output(pin[1], GPIO.HIGH)
-			#print sum_value
+			print sum_value
 		else:
 			GPIO.output(pin[1], GPIO.LOW)
 		f.write(str(temp) + '\n'+ str(sum_value) + '\n')
@@ -66,6 +107,12 @@ def xband_pir(pin, cycles, outData, name):
 	
 	print name, 'finished'
 	outData.put(data)
+
+'''
+
+
+
+
 
 
 
@@ -85,14 +132,14 @@ xBandThread.join()
 xBandData = xBandData_queue.get()
 #pirData = pirData_queue.get()
 
-
+'''
 mean = []
 for i in range(len(xBandData[1])):
 	if i != 0:
 		mean.append(xBandData[1][i] -  xBandData[1][i-1])
 mean = sum(mean) / len(mean)
 print mean
-
+'''
 '''
 file = open("row_data" + "_" + sys.argv[2] + ".txt", "w")
 s = ' '
