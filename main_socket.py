@@ -1,6 +1,6 @@
-import matplotlib
-matplotlib.use("AGG")
-import matplotlib.pyplot as plt
+#import matplotlib
+#matplotlib.use("AGG")
+#import matplotlib.pyplot as plt
 import Adafruit_BBIO.GPIO as GPIO
 import time
 from collections import Counter
@@ -96,10 +96,10 @@ while True:
 
 	xBandThread.start()
 	pirThread.start()
-	conn.sendto('started', addr)
+#	conn.sendto('started', addr)
 	xBandThread.join()
 	pirThread.join()
-	conn.sendto('finished', addr)
+#	conn.sendto('finished', addr)
 	conn.close()
 
 	GPIO.cleanup()
