@@ -10,6 +10,8 @@ import Queue
 import sys
 import thread
 import os
+import math
+import numpy as np
 
 # 0 - out pin     1 - LED pin
 xBandPins = {0 : 'P8_12', 1 : 'P8_11'}	
@@ -17,6 +19,8 @@ pirPins = {0 : 'P8_14', 1 : 'P8_13' }
 
 print 'program starting'
 print "________________"
+
+def reject_outliers(data, m=2): return data[abs(data - np.mean(data)) < m * np.std(data)]
 
 
 GPIO.setup(xBandPins[0], GPIO.IN)	    	
@@ -39,7 +43,8 @@ def xband_pir(pin, cycles, out_raw_data, out_fr_trans_graph, name):
 	raw_data.append([])
 	t_time = 0
 
-#	slide_window = []
+	slide_window = []
+	temp_slide_window = []
 
 	print name, 'started'
 	
@@ -59,7 +64,15 @@ def xband_pir(pin, cycles, out_raw_data, out_fr_trans_graph, name):
 				freq = 1/(periods[-1] - periods[-2])
 				fr_trans_graph[0].append(temp[1][-2])
 				fr_trans_graph[1].append(freq)
-				if freq > 20:
+				slide_window.append(freq)
+				if len(slide_window) > 10:
+					del slide_window[0]
+				# standart deviation
+				if len(slide_window) == 10: 
+					#print np.std(slide_window), freq
+					a = reject_outliers(slide_window)
+					print len(a)
+				if freq > 30:
 					GPIO.output(pin[1], GPIO.HIGH)
 				else:
 					GPIO.output(pin[1], GPIO.LOW)
@@ -67,6 +80,10 @@ def xband_pir(pin, cycles, out_raw_data, out_fr_trans_graph, name):
 				del periods[0]
 			del temp[0][:-1]
 			del temp[1][:-1]
+
+		
+
+
 	print name, 'finished'
 	out_raw_data.put(raw_data)
 	out_fr_trans_graph.put(fr_trans_graph)
@@ -76,7 +93,7 @@ xBand_raw_data_queue = Queue.Queue()
 xBand_fr_transform_queue = Queue.Queue()
 #pirData_queue = Queue.Queue()
 
-xBandThread = threading.Thread(target = xband_pir, args = (xBandPins, int(sys.argv[1]), xBand_raw_data_queue, xBand_fr_transform_queue, 'X-Band detector'))
+xBandThread = threading.Thread(target = xband_pir, args = (xBandPins, float(sys.argv[1]), xBand_raw_data_queue, xBand_fr_transform_queue, 'X-Band detector'))
 #pirThread = threading.Thread(target = xband_pir, args = (pirPins, int(sys.argv[1]), pirData_queue, 'PIR sensor'))
 
 xBandThread.start()
