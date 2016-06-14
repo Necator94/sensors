@@ -25,102 +25,58 @@ GPIO.setup(xBandPins[1], GPIO.OUT)
 GPIO.setup(pirPins[0], GPIO.IN)	    	
 GPIO.setup(pirPins[1], GPIO.OUT)    	
 
-def xband_pir(pin, cycles, outData, name):
-	
-	window = int(sys.argv[2])
+def xband_pir(pin, cycles, out_raw_data, out_fr_trans_graph, name):
+	#window = int(sys.argv[2])
+	periods = []
 	temp = []
-	temp_time = []
-	transform_time = []
-	if name == 'PIR sensor':
-		sleepTime = 0.001
-	if name == 'X-Band detector':
-		sleepTime = 0
-	cycles = cycles * 350
+	temp.append([])
+	temp.append([])
+	fr_trans_graph = []
+	fr_trans_graph.append([])
+	fr_trans_graph.append([])
+	raw_data = []
+	raw_data.append([])
+	raw_data.append([])
+	t_time = 0
+
+#	slide_window = []
+
 	print name, 'started'
-	data = []
-	data.append([])
-	data.append([])
-	i = 0
+	
 	startTime = time.time()
-	f = open('test.txt', 'w')
-	while i < cycles:
+	while t_time < cycles:
 		check = GPIO.input(pin[0])
-		#print check
-		data[0].append(check)	
 		t_time = time.time() - startTime
-		#print t_time
-		data[1].append(t_time)
+		raw_data[0].append(check)	
+		raw_data[1].append(t_time)
 #___________________________________________________
 # frequency transformation
-		if len(temp) < window:
-			temp.append(check)
-			temp_time.append(t_time)
-			#print '+'
-			
-		else:
-			#print '-'
-			temp.append(check)
-			temp_time.append(t_time)
-			for n, element in enumerate(temp):
-				if element > temp[n - 1] and n > 0:
-					#print n, element
-					transform_time.append(temp_time[n])
-			#print len(transform_time), 'len'
-					
-			for n, element in enumerate(transform_time):
-				#print transform_time[n], n
-				if n > 0:	
-					al = 1/(transform_time[n] - transform_time[n-1])
-					if al > 30:
-						print al
-						GPIO.output(pin[1], GPIO.HIGH)
-					else:
-						GPIO.output(pin[1], GPIO.LOW)
-			temp = []
-			temp_time = []
-			transform_time = []
-
-		i += 1
+		temp[0].append(check)
+		temp[1].append(t_time)
+		if len(temp[0]) > 1 and temp[0][-1] > temp[0][-2]:
+			periods.append(temp[1][-2]) 
+			if len(periods) > 1:
+				freq = 1/(periods[-1] - periods[-2])
+				fr_trans_graph[0].append(temp[1][-2])
+				fr_trans_graph[1].append(freq)
+				if freq > 20:
+					GPIO.output(pin[1], GPIO.HIGH)
+				else:
+					GPIO.output(pin[1], GPIO.LOW)
+				#print freq, periods[-1], len(periods)
+				del periods[0]
+			del temp[0][:-1]
+			del temp[1][:-1]
 	print name, 'finished'
-	outData.put(data)
+	out_raw_data.put(raw_data)
+	out_fr_trans_graph.put(fr_trans_graph)
 
 
-#_________________________________________________
-#convolutional transformation
-'''			
-		if len(data[0]) < window:
-			temp.append(check)
-			sum_value = sum(temp)
-		else:
-			temp.append(check)
-			del temp[0]
-			sum_value = sum(temp)
-		#print sum_value
-		if sum_value > int(sys.argv[3]):
-			GPIO.output(pin[1], GPIO.HIGH)
-			print sum_value
-		else:
-			GPIO.output(pin[1], GPIO.LOW)
-		f.write(str(temp) + '\n'+ str(sum_value) + '\n')
-		i += 1
-		time.sleep(sleepTime)
-	
-	print name, 'finished'
-	outData.put(data)
-
-'''
-
-
-
-
-
-
-
-
-xBandData_queue = Queue.Queue()
+xBand_raw_data_queue = Queue.Queue()
+xBand_fr_transform_queue = Queue.Queue()
 #pirData_queue = Queue.Queue()
 
-xBandThread = threading.Thread(target = xband_pir, args = (xBandPins, int(sys.argv[1]), xBandData_queue, 'X-Band detector'))
+xBandThread = threading.Thread(target = xband_pir, args = (xBandPins, int(sys.argv[1]), xBand_raw_data_queue, xBand_fr_transform_queue, 'X-Band detector'))
 #pirThread = threading.Thread(target = xband_pir, args = (pirPins, int(sys.argv[1]), pirData_queue, 'PIR sensor'))
 
 xBandThread.start()
@@ -129,25 +85,17 @@ xBandThread.start()
 xBandThread.join()
 #pirThread.join()
 
-xBandData = xBandData_queue.get()
+xBand_raw_data = xBand_raw_data_queue.get()
+xBand_fr_transform = xBand_fr_transform_queue.get()
 #pirData = pirData_queue.get()
 
-'''
-mean = []
-for i in range(len(xBandData[1])):
-	if i != 0:
-		mean.append(xBandData[1][i] -  xBandData[1][i-1])
-mean = sum(mean) / len(mean)
-print mean
-'''
-'''
-file = open("row_data" + "_" + sys.argv[2] + ".txt", "w")
+file = open("plot_data" + "_"  + ".txt", "w")
 s = ' '
-for index in range(len(xBandData[0])):
-    file.write(str(xBandData [0] [index]) + s + str(xBandData [1] [index])  + "\n")
+for index in range(len(xBand_fr_transform[0])):
+    file.write(str(xBand_fr_transform[0][index]) + s + str(xBand_fr_transform[1][index]) + "\n")
 file.close()
-'''
-'''+ s + str(pirData [0] [index]) + s + str(pirData [1] [index])'''
+
+
 
 
 
