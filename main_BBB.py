@@ -15,29 +15,33 @@ import numpy as np
 
 
 #sys.argv[1] - time duration of the experiment
-#sys.argv[2] - frequency criteria of movment detection
+#sys.argv[2] - mean frequency criteria of movment detection
 #sys.argv[3] - standard deviation criteria of movement detection
 
 # 0 - out pin     1 - LED pin
-xBandPins = {0 : 'P8_12', 1 : 'P8_11'}	
-pirPins = {0 : 'P8_14', 1 : 'P8_13' }
+xBandPins = {'signal_pin' : 'P8_12', 'LED_pin' : 'P8_11'}	
+pirPins = {'signal_pin' : 'P8_14', 'LED_pin' : 'P8_13' }
 
-print 'program starting'
-print "________________"
+if len(sys.argv) < 3:
+	exp_parameter = {'duration' : 30,'fr_level' : 20,'std_level' : 15}
+	print '______________________________________________'
+	print "parameters are set by default:%stime duration = %i s%sfr_level = %i%sstd_level = %i%s" % ('\n',exp_parameter['duration'],'\n',exp_parameter['fr_level'],'\n',exp_parameter['std_level'],'\n')
+else:
+	exp_parameter = {'duration' : int(sys.argv[1]),'fr_level' : int(sys.argv[2]),'std_level' : int(sys.argv[3])}
+	print '______________________________________________'
+	print "parameters are set manually:%stime duration = %is%sfr_level = %i%sstd_level = %i%s" % ('\n',exp_parameter['duration'],'\n',exp_parameter['fr_level'],'\n',exp_parameter['std_level'],'\n')
+print 'Program starting...'
 
-GPIO.setup(xBandPins[0], GPIO.IN)	    	
-GPIO.setup(xBandPins[1], GPIO.OUT)  
 
-GPIO.setup(pirPins[0], GPIO.IN)	    	
-GPIO.setup(pirPins[1], GPIO.OUT)    	
+GPIO.setup(xBandPins['signal_pin'], GPIO.IN)	    	
+GPIO.setup(xBandPins['LED_pin'], GPIO.OUT)  
 
-def xband(pin, out_raw_data, out_fr_trans_graph, out_detect_signal,  name):
+GPIO.setup(pirPins['signal_pin'], GPIO.IN)	    	
+GPIO.setup(pirPins['LED_pin'], GPIO.OUT)    	
 
-	duration = float(sys.argv[1])
-	fr_level = float(sys.argv[2])
-	std_level = float(sys.argv[3])
+def xband(gpio_pins, out_raw_data, out_fr_trans_graph, out_detect_signal,  exp_parameter):
+
 	periods = []
-	
 	temp = []
 	for i in range(2): temp.append([])
 	fr_trans_graph = []
@@ -52,11 +56,11 @@ def xband(pin, out_raw_data, out_fr_trans_graph, out_detect_signal,  name):
 	st_dev = 0
 	mean_vol = 0
 
-	print name, 'started'
+	print 'X-Band started'
 	startTime = time.time()
 	
-	while t_time < duration:
-		check = GPIO.input(pin[0])
+	while t_time < exp_parameter['duration'] :
+		check = GPIO.input(gpio_pins['signal_pin'])
 		t_time = time.time() - startTime
 		raw_data[0].append(t_time)	
 		raw_data[1].append(check)
@@ -79,23 +83,23 @@ def xband(pin, out_raw_data, out_fr_trans_graph, out_detect_signal,  name):
 					st_dev = np.std(slide_window)			# standard deviation
 					mean_vol = np.mean(slide_window)
 
-				if mean_vol > fr_level and st_dev < std_level:
-					GPIO.output(pin[1], GPIO.HIGH)
+				if mean_vol > exp_parameter['fr_level'] and st_dev <  exp_parameter['std_level']:
+					GPIO.output(gpio_pins['LED_pin'], GPIO.HIGH)
 					detect_signal[0].append(t_time)
-					detect_signal[1].append(1)
+					detect_signal[1].append(True)
 					detect_signal[2].append(mean_vol)
 					detect_signal[3].append(st_dev)
 				else:
-					GPIO.output(pin[1], GPIO.LOW)
+					GPIO.output(gpio_pins['LED_pin'], GPIO.LOW)
 					detect_signal[0].append(t_time)
-					detect_signal[1].append(0)
+					detect_signal[1].append(False)
 					detect_signal[2].append(mean_vol)
 					detect_signal[3].append(st_dev)
 				del periods[0]
 			del temp[0][:-1]
 			del temp[1][:-1]
 
-	print name, 'finished'
+	print 'X-Band finished'
 	out_raw_data.put(raw_data)
 	out_fr_trans_graph.put(fr_trans_graph)
 	out_detect_signal.put(detect_signal)
@@ -106,7 +110,7 @@ xBand_fr_transform_queue = Queue.Queue()
 xBand_detect_signal_queue = Queue.Queue()
 #pirData_queue = Queue.Queue()
 
-xBandThread = threading.Thread(target = xband, args = 	(xBandPins, xBand_raw_data_queue, xBand_fr_transform_queue, xBand_detect_signal_queue, 'X-Band detector'))
+xBandThread = threading.Thread(target = xband, args = 	(xBandPins, xBand_raw_data_queue, xBand_fr_transform_queue, xBand_detect_signal_queue, exp_parameter))
 #pirThread = threading.Thread(target = xband_pir, args = (pirPins, int(sys.argv[1]), pirData_queue, 'PIR sensor'))
 
 xBandThread.start()

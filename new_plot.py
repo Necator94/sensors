@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import sys
 from matplotlib.gridspec import GridSpec
 from matplotlib.gridspec import GridSpec
-matplotlib.rcParams.update({"figure.figsize": (20.0,12.0)})
+matplotlib.rcParams.update({"figure.figsize": (25.0,13.0)})
 import random
 import numpy as np
 import math
@@ -63,29 +63,79 @@ for line in plot_data:
 		xBand_detect_std.append(string[3])
 
 
-gs1 = GridSpec(2, 1)
-gs1.update(left=0.03, right=0.98, wspace=0)
+gs1 = GridSpec(2, 2)
+gs1.update(left=0.03, right=0.98, wspace=0.1)
 
 raw_plt = plt.subplot(gs1[0])
+raw_plt.grid(color='#c1c1c1', linestyle=':', linewidth=1)
 raw_plt.plot(xBand_raw_time, xBand_raw_data, 'b')
-raw_plt.plot(xBand_fr_transform_time, xBand_fr_transform_data, 'b')
+plt.axis([0,10,0,1.1])							#limits can be taken from metadata
 plt.ylabel('Motion status')
-plt.title('Raw X-Band detector data')
+plt.xlabel('Time, s')
+plt.title('Raw X-Band detector signal')
 
-detect_plt = plt.subplot(gs1[1])
-detect_plt.plot(xBand_detect_time, xBand_detect_status, 'r')
-detect_plt.plot(xBand_detect_time, xBand_detect_mean, 'k')
-detect_plt.plot(xBand_detect_time, xBand_detect_std, 'g')
+
+fr_tr_plt = plt.subplot(gs1[1])
+fr_tr_plt.grid(color='#c1c1c1', linestyle=':', linewidth=1)
+fr_tr_plt.plot(xBand_fr_transform_time, xBand_fr_transform_data, 'b',linewidth=2)
+plt.ylabel('Movement intensity')
+plt.xlabel('Time, s')
+plt.title('Frequency transformation graph')
+
+
+mean_allocation = []
+mean_allocation.append([]) 
+mean_allocation.append([])
+for i in range(len(xBand_detect_mean)):
+	if xBand_detect_mean[i] > 40:
+		print xBand_detect_mean[i]
+		mean_allocation[0].append(xBand_detect_time[i])
+		mean_allocation[1].append(xBand_detect_mean[i])
+		print len(mean_allocation[1])
+
+gs2 = GridSpec(2, 2)
+gs2.update(left=0.03, right=0.98, wspace=0.1)
+
+levelDm = []									# estimation level for mean value
+level = 30   									#from metadata
+for i in enumerate(xBand_detect_mean):
+	levelDm.append(level)
+detect_plt = plt.subplot(gs2[2])
+detect_plt.grid(color='#c1c1c1', linestyle=':', linewidth=1)
+detect_plt.plot(xBand_detect_time, xBand_detect_mean, 'k', linestyle='-', linewidth=3, label="mean value of the signal")
+detect_plt.plot(xBand_detect_time, levelDm,'k',linestyle='--',linewidth=2, label="criteria of estimation")
+plt.legend(loc='upper left', frameon=False)
+plt.ylabel('Mean value of frequency')
+plt.xlabel('Time, s')
+plt.title('Mean values graph')
+
+detect_plt = plt.subplot(gs2[3])
+detect_plt.grid(color='#c1c1c1', linestyle=':', linewidth=1)
+detect_plt.plot(xBand_detect_time, xBand_detect_std, 'g',linestyle=':', linewidth=4, label="standard deviation value of the signal")
+plt.legend(loc='upper left', frameon=False)
 plt.ylabel('Motion status')
-plt.title('Raw X-Band detector data')
-
+plt.xlabel('Time, s')
+plt.title('Movement detection graph')
 '''
-fr_ = plt.subplot(gs1[1])
-
-fr_.plot(xBand_time1, std_graph, 'g')
+gs3 = GridSpec(5, 1)
+gs3.update(left=0.03, right=0.98, wspace=0)
+detect_plt = plt.subplot(gs3[4])
+detect_plt.grid(color='#c1c1c1', linestyle=':', linewidth=1)
+detect_plt.plot(xBand_detect_time, xBand_detect_std, 'g',linestyle=':', linewidth=4, label="standard deviation value of the signal")
+detect_plt.plot(xBand_detect_time, xBand_detect_mean, 'k', linestyle='-', linewidth=3, label="mean value of the signal")
+#detect_plt.plot(xBand_detect_time, xBand_detect_status, 'r', linewidth=4, label="movement is detected")
+plt.legend(loc='upper left', frameon=False)
 plt.ylabel('Motion status')
-plt.title('Frequency transformation')
+plt.xlabel('Time, s')
+plt.title('Movement detection graph')
 '''
+'''
+for i in range(len(xBand_detect_status)):  
+	if xBand_detect_status[i] == 'True': xBand_detect_status[i] = 10
+	if xBand_detect_status[i] == 'False': xBand_detect_status[i] = 0
+detect_plt.plot(xBand_detect_time, xBand_detect_status, 'r', linewidth=4, label="movement is detected")
+'''
+
 plt.show()
 
 
