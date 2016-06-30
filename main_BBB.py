@@ -20,7 +20,9 @@ import numpy as np
 
 # 0 - out pin     1 - LED pin
 xBandPins = {'signal_pin' : 'P8_12', 'LED_pin' : 'P8_11'}	
-pirPins = {'signal_pin' : 'P8_14', 'LED_pin' : 'P8_13' }
+#pir1Pins = {'signal_pin' : 'P8_14', 'LED_pin' : 'P8_13' }
+pir1Pins = {'signal_pin' : 'P8_15', 'LED_pin' : 'P8_13' }
+pir2Pins = {'signal_pin' : 'P8_17', 'source_pin' : 'P8_18' }
 
 if len(sys.argv) < 3:
 	exp_parameter = {'duration' : 30,'fr_level' : 20,'std_level' : 15}
@@ -34,12 +36,16 @@ print 'Program starting...'
 
 
 GPIO.setup(xBandPins['signal_pin'], GPIO.IN)	    	
-GPIO.setup(xBandPins['LED_pin'], GPIO.OUT)  
+#GPIO.setup(xBandPins['LED_pin'], GPIO.OUT)  
 
-GPIO.setup(pirPins['signal_pin'], GPIO.IN)	    	
-GPIO.setup(pirPins['LED_pin'], GPIO.OUT)    	
+GPIO.setup(pir1Pins['signal_pin'], GPIO.IN)	    	
+#GPIO.setup(pirPins['LED_pin'], GPIO.OUT)    	
 
-def xband(gpio_pins, out_raw_data, out_fr_trans_graph, out_detect_signal,  exp_parameter):
+GPIO.setup(pir2Pins['signal_pin'], GPIO.IN)
+GPIO.setup(pir2Pins['source_pin'], GPIO.OUT)
+GPIO.output(pir2Pins['source_pin'], GPIO.HIGH)	
+
+def xband(gpio_pins, out_raw_data, out_fr_trans_graph, out_detect_signal, exp_parameter):
 
 	periods = []
 	temp = []
@@ -84,13 +90,13 @@ def xband(gpio_pins, out_raw_data, out_fr_trans_graph, out_detect_signal,  exp_p
 					mean_vol = np.mean(slide_window)
 
 				if mean_vol > exp_parameter['fr_level'] and st_dev <  exp_parameter['std_level']:
-					GPIO.output(gpio_pins['LED_pin'], GPIO.HIGH)
+					#GPIO.output(gpio_pins['LED_pin'], GPIO.HIGH)
 					detect_signal[0].append(t_time)
 					detect_signal[1].append(True)
 					detect_signal[2].append(mean_vol)
 					detect_signal[3].append(st_dev)
 				else:
-					GPIO.output(gpio_pins['LED_pin'], GPIO.LOW)
+					#GPIO.output(gpio_pins['LED_pin'], GPIO.LOW)
 					detect_signal[0].append(t_time)
 					detect_signal[1].append(False)
 					detect_signal[2].append(mean_vol)
@@ -105,26 +111,53 @@ def xband(gpio_pins, out_raw_data, out_fr_trans_graph, out_detect_signal,  exp_p
 	out_detect_signal.put(detect_signal)
 
 
+def pir(gpio_pins, out_detect_signal, exp_parameter, name):
+	t_time = 0
+	detect_signal = []
+	for i in range(2): detect_signal.append([])
+	print name, 'started'
+
+	startTime = time.time()
+	while t_time < exp_parameter['duration'] :
+		check = GPIO.input(gpio_pins['signal_pin']) 
+		t_time = time.time() - startTime
+		detect_signal[0].append(t_time)
+		detect_signal[1].append(check)	
+		time.sleep(0.1)
+	print name, 'finished'
+	out_detect_signal.put(detect_signal)
+
 xBand_raw_data_queue = Queue.Queue()
 xBand_fr_transform_queue = Queue.Queue()
 xBand_detect_signal_queue = Queue.Queue()
-#pirData_queue = Queue.Queue()
+pir1_detect_signal_queue = Queue.Queue()
+pir2_detect_signal_queue = Queue.Queue()
+
 
 xBandThread = threading.Thread(target = xband, args = 	(xBandPins, xBand_raw_data_queue, xBand_fr_transform_queue, xBand_detect_signal_queue, exp_parameter))
-#pirThread = threading.Thread(target = xband_pir, args = (pirPins, int(sys.argv[1]), pirData_queue, 'PIR sensor'))
+pir1Thread = threading.Thread(target = pir, args = (pir1Pins, pir1_detect_signal_queue, exp_parameter, 'pir1'))
+pir2Thread = threading.Thread(target = pir, args = (pir2Pins, pir2_detect_signal_queue, exp_parameter, 'pir2'))
 
 xBandThread.start()
-#pirThread.start()
+pir1Thread.start()
+pir2Thread.start()
 
 xBandThread.join()
-#pirThread.join()
+pir1Thread.join()
+pir2Thread.join()
 
 xBand_raw_data = xBand_raw_data_queue.get()
 xBand_fr_transform = xBand_fr_transform_queue.get()
 xBand_detect_signal = xBand_detect_signal_queue.get()
-#pirData = pirData_queue.get()
+pir1_detect_signal = pir1_detect_signal_queue.get()
+pir2_detect_signal = pir2_detect_signal_queue.get()
 
 file = open("plot_data" + "_"  + ".txt", "w")
+file.write("exp_parameter" + '\n')
+s = ' '
+file.write(str(exp_parameter['duration']) + s + str(exp_parameter['fr_level']) + s + str(exp_parameter['std_level']) + '\n')
+file.write("/end_of_exp_parameter" + '\n')
+
 file.write("row_data" + '\n')
 s = ' '
 for index in range(len(xBand_raw_data[0])): file.write(str(xBand_raw_data[0][index]) + s + str(xBand_raw_data[1][index]) + "\n")
@@ -138,6 +171,16 @@ file.write("xBand_detect_signal" + '\n')
 for index in range(len(xBand_detect_signal[0])):
     file.write(str(xBand_detect_signal[0][index]) + s + str(xBand_detect_signal[1][index]) + s + str(xBand_detect_signal[2][index]) + s + str(xBand_detect_signal[3][index]) +"\n")
 file.write("/end_of_xBand_detect_signal" + '\n')
+
+file.write("pir1_detect_signal" + '\n')
+for index in range(len(pir1_detect_signal[0])):
+    file.write(str(pir1_detect_signal[0][index]) + s + str(pir1_detect_signal[1][index]) +"\n")
+file.write("/end_of_pir1_detect_signal" + '\n')
+
+file.write("pir2_detect_signal" + '\n')
+for index in range(len(pir2_detect_signal[0])):
+    file.write(str(pir2_detect_signal[0][index]) + s + str(pir2_detect_signal[1][index]) +"\n")
+file.write("/end_of_pir2_detect_signal" + '\n')
 
 file.close()
 

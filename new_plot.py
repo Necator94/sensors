@@ -8,21 +8,28 @@ import random
 import numpy as np
 import math
 
-
+periods = []
+fr_trans_graph = []
+for i in range(2): fr_trans_graph.append([])
+detect_signal = []
+for i in range(4): detect_signal.append([])
+slide_window = []
+st_dev = 0
+mean_vol = 0
 
 xBand_raw_time = []
 xBand_raw_data = []
-xBand_fr_transform_time = []
-xBand_fr_transform_data = []
 
-xBand_detect_time = []
-xBand_detect_status = []
-xBand_detect_mean = []
-xBand_detect_std = []
+pir1_detect_time = []
+pir1_detect_status = []
+
+pir2_detect_time = []
+pir2_detect_status = []
 
 raw_data_flag = 'foo bar'
-xBand_fr_transform_flag = 'foo bar'
-xBand_detect_signal_flag = 'foo bar'
+pir1_detect_signal_flag = 'foo bar'
+pir2_detect_signal_flag = 'foo bar'
+exp_parameter_flag = 'foo bar'
 
 plot_data = open("plot_data_" + ".txt", "r")
 for line in plot_data:
@@ -35,106 +42,137 @@ for line in plot_data:
 		continue
 	if raw_data_flag == True: 
 		string = line.split()
-		xBand_raw_time.append(string[0])
-		xBand_raw_data.append(string[1])
+		xBand_raw_time.append(float(string[0]))
+		xBand_raw_data.append(int(string[1]))	
 
-	if line == "xBand_fr_transform\n" : 
-		xBand_fr_transform_flag = True 
+	if line == "pir1_detect_signal\n" : 
+		pir1_detect_signal_flag = True 
 		continue
-	if line == "/end_of_xBand_fr_transform\n" : 
-		xBand_fr_transform_flag = False
+	if line == "/end_of_pir1_detect_signal\n" : 
+		pir1_detect_signal_flag = False
 		continue
-	if xBand_fr_transform_flag == True: 
+	if pir1_detect_signal_flag == True: 
 		string = line.split()
-		xBand_fr_transform_time.append(string[0])
-		xBand_fr_transform_data.append(string[1])
-	
-	if line == "xBand_detect_signal\n" : 
-		xBand_detect_signal_flag = True 
+		pir1_detect_time.append(string[0])
+		pir1_detect_status.append(string[1])
+
+	if line == "pir2_detect_signal\n" : 
+		pir2_detect_signal_flag = True 
 		continue
-	if line == "/end_of_xBand_detect_signal\n" : 
-		xBand_detect_signal_flag = False
+	if line == "/end_of_pir2_detect_signal\n" : 
+		pir2_detect_signal_flag = False
 		continue
-	if xBand_detect_signal_flag == True: 
+	if pir2_detect_signal_flag == True: 
 		string = line.split()
-		xBand_detect_time.append(string[0])
-		xBand_detect_status.append(string[1])
-		xBand_detect_mean.append(string[2])
-		xBand_detect_std.append(string[3])
+		pir2_detect_time.append(string[0])
+		pir2_detect_status.append(int(string[1]))
 
+	if line == "exp_parameter\n" : 
+		exp_parameter_flag = True 
+		continue
+	if line == "/end_of_exp_parameter\n" : 
+		exp_parameter_flag = False
+		continue
+	if exp_parameter_flag == True: 
+		string = line.split()
+		duration = int(string[0])
+		meanlevel = int(string[1])
+		stdlevel = int(string[2])
 
-gs1 = GridSpec(2, 2)
-gs1.update(left=0.03, right=0.98, wspace=0.1)
+for i, element in enumerate(xBand_raw_data):	
+	if i > 1 and xBand_raw_data[i] > xBand_raw_data[i-1]:
+		periods.append(xBand_raw_time[i]) 	
+		if len(periods) > 1:
+			freq = 1/(periods[-1] - periods[-2])
+			fr_trans_graph[0].append(xBand_raw_time[i-1])
+			fr_trans_graph[1].append(freq)	
+			slide_window.append(freq)
+			if len(slide_window) > 3:
+				slide_window = [] 
+			if len(slide_window) == 3: 
+				st_dev = np.std(slide_window)			# standard deviation
+				mean_vol = np.mean(slide_window)
+
+			if mean_vol > meanlevel and st_dev < stdlevel:
+				detect_signal[0].append(xBand_raw_time[i])
+				detect_signal[1].append(1)
+				detect_signal[2].append(mean_vol)
+				detect_signal[3].append(st_dev)
+			else:
+				detect_signal[0].append(xBand_raw_time[i])
+				detect_signal[1].append(0)
+				detect_signal[2].append(mean_vol)
+				detect_signal[3].append(st_dev)
+			del periods[0]
+			
+
+gs1 = GridSpec(5, 2)
+gs1.update(left=0.03, right=0.98, wspace=0.1,  hspace=0.5, bottom=0.05, top = 0.96)
 
 raw_plt = plt.subplot(gs1[0])
 raw_plt.grid(color='#c1c1c1', linestyle=':', linewidth=1)
 raw_plt.plot(xBand_raw_time, xBand_raw_data, 'b')
-plt.axis([0,10,0,1.1])							#limits can be taken from metadata
+plt.axis([0,duration,0,1.1])							#limits can be taken from metadata
 plt.ylabel('Motion status')
 plt.xlabel('Time, s')
 plt.title('Raw X-Band detector signal')
 
-
 fr_tr_plt = plt.subplot(gs1[1])
 fr_tr_plt.grid(color='#c1c1c1', linestyle=':', linewidth=1)
-fr_tr_plt.plot(xBand_fr_transform_time, xBand_fr_transform_data, 'b',linewidth=2)
+fr_tr_plt.plot(fr_trans_graph[0], fr_trans_graph[1], 'b',linewidth=2)
 plt.ylabel('Movement intensity')
 plt.xlabel('Time, s')
 plt.title('Frequency transformation graph')
 
+meanCr = []										# estimation level for mean value  								
+for i in enumerate(detect_signal[2]):
+	meanCr.append(meanlevel) 					#from metadata
+stdCr = []										# estimation level for std value									
+for i in enumerate(detect_signal[3]):
+	stdCr.append(stdlevel)						#from metadata
 
-mean_allocation = []
-mean_allocation.append([]) 
-mean_allocation.append([])
-for i in range(len(xBand_detect_mean)):
-	if xBand_detect_mean[i] > 40:
-		print xBand_detect_mean[i]
-		mean_allocation[0].append(xBand_detect_time[i])
-		mean_allocation[1].append(xBand_detect_mean[i])
-		print len(mean_allocation[1])
-
-gs2 = GridSpec(2, 2)
-gs2.update(left=0.03, right=0.98, wspace=0.1)
-
-levelDm = []									# estimation level for mean value
-level = 30   									#from metadata
-for i in enumerate(xBand_detect_mean):
-	levelDm.append(level)
-detect_plt = plt.subplot(gs2[2])
+detect_plt = plt.subplot(gs1[1,:])
 detect_plt.grid(color='#c1c1c1', linestyle=':', linewidth=1)
-detect_plt.plot(xBand_detect_time, xBand_detect_mean, 'k', linestyle='-', linewidth=3, label="mean value of the signal")
-detect_plt.plot(xBand_detect_time, levelDm,'k',linestyle='--',linewidth=2, label="criteria of estimation")
+detect_plt.plot(detect_signal[0],detect_signal[2], 'k', linestyle='-', linewidth=1, label="mean value of the signal")
+detect_plt.plot(detect_signal[0], meanCr,'k',linestyle='--',linewidth=2)
+detect_plt.plot(detect_signal[0],detect_signal[3], 'g',linestyle='-', linewidth=1, label="standard deviation value of the signal")
+detect_plt.plot(detect_signal[0], stdCr,'g',linestyle='--',linewidth=2)
 plt.legend(loc='upper left', frameon=False)
 plt.ylabel('Mean value of frequency')
 plt.xlabel('Time, s')
 plt.title('Mean values graph')
 
-detect_plt = plt.subplot(gs2[3])
-detect_plt.grid(color='#c1c1c1', linestyle=':', linewidth=1)
-detect_plt.plot(xBand_detect_time, xBand_detect_std, 'g',linestyle=':', linewidth=4, label="standard deviation value of the signal")
+pl = plt.subplot(gs1[2, :])
+pl.grid(color='#c1c1c1', linestyle=':', linewidth=1)
+pl.plot(detect_signal[0], detect_signal[1], 'b', linewidth=4 )
+plt.axis([0,duration,0,1.1])							#limits can be taken from metadata
 plt.legend(loc='upper left', frameon=False)
 plt.ylabel('Motion status')
 plt.xlabel('Time, s')
 plt.title('Movement detection graph')
-'''
-gs3 = GridSpec(5, 1)
-gs3.update(left=0.03, right=0.98, wspace=0)
-detect_plt = plt.subplot(gs3[4])
-detect_plt.grid(color='#c1c1c1', linestyle=':', linewidth=1)
-detect_plt.plot(xBand_detect_time, xBand_detect_std, 'g',linestyle=':', linewidth=4, label="standard deviation value of the signal")
-detect_plt.plot(xBand_detect_time, xBand_detect_mean, 'k', linestyle='-', linewidth=3, label="mean value of the signal")
-#detect_plt.plot(xBand_detect_time, xBand_detect_status, 'r', linewidth=4, label="movement is detected")
+
+pir1_plt = plt.subplot(gs1[3, :])
+pir1_plt.grid(color='#c1c1c1', linestyle=':', linewidth=1)
+pir1_plt.plot(pir1_detect_time, pir1_detect_status, 'r',linestyle='-', linewidth=4)
+plt.axis([0,duration,0,1.1])							#limits can be taken from metadata
 plt.legend(loc='upper left', frameon=False)
 plt.ylabel('Motion status')
 plt.xlabel('Time, s')
 plt.title('Movement detection graph')
-'''
-'''
-for i in range(len(xBand_detect_status)):  
-	if xBand_detect_status[i] == 'True': xBand_detect_status[i] = 10
-	if xBand_detect_status[i] == 'False': xBand_detect_status[i] = 0
-detect_plt.plot(xBand_detect_time, xBand_detect_status, 'r', linewidth=4, label="movement is detected")
-'''
+
+for i, element in enumerate(pir2_detect_status):
+	if element == 1:
+		pir2_detect_status[i] = 0
+	else:
+		pir2_detect_status[i] = 1
+pir2_plt = plt.subplot(gs1[4, :])
+pir2_plt.grid(color='#c1c1c1', linestyle=':', linewidth=1)
+pir2_plt.plot(pir2_detect_time, pir2_detect_status, '#ff9900',linestyle='-', linewidth=4)
+plt.axis([0,duration,0,1.1])							#limits can be taken from metadata
+plt.legend(loc='upper left', frameon=False)
+plt.ylabel('Motion status')
+plt.xlabel('Time, s')
+plt.title('Movement detection graph')
 
 plt.show()
 
