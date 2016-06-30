@@ -138,9 +138,9 @@ detect_plt.plot(detect_signal[0], meanCr,'k',linestyle='--',linewidth=2)
 detect_plt.plot(detect_signal[0],detect_signal[3], 'g',linestyle='-', linewidth=1, label="standard deviation value of the signal")
 detect_plt.plot(detect_signal[0], stdCr,'g',linestyle='--',linewidth=2)
 plt.legend(loc='upper left', frameon=False)
-plt.ylabel('Mean value of frequency')
+plt.ylabel('Relative values')
 plt.xlabel('Time, s')
-plt.title('Mean values graph')
+plt.title('Mean and standard deviation values of processed signal')
 
 pl = plt.subplot(gs1[2, :])
 pl.grid(color='#c1c1c1', linestyle=':', linewidth=1)
@@ -149,7 +149,7 @@ plt.axis([0,duration,0,1.1])							#limits can be taken from metadata
 plt.legend(loc='upper left', frameon=False)
 plt.ylabel('Motion status')
 plt.xlabel('Time, s')
-plt.title('Movement detection graph')
+plt.title('Movement detection graph for radar sensor')
 
 pir1_plt = plt.subplot(gs1[3, :])
 pir1_plt.grid(color='#c1c1c1', linestyle=':', linewidth=1)
@@ -158,7 +158,7 @@ plt.axis([0,duration,0,1.1])							#limits can be taken from metadata
 plt.legend(loc='upper left', frameon=False)
 plt.ylabel('Motion status')
 plt.xlabel('Time, s')
-plt.title('Movement detection graph')
+plt.title('Movement detection graph for PIR-1 sensor')
 
 for i, element in enumerate(pir2_detect_status):
 	if element == 1:
@@ -172,7 +172,7 @@ plt.axis([0,duration,0,1.1])							#limits can be taken from metadata
 plt.legend(loc='upper left', frameon=False)
 plt.ylabel('Motion status')
 plt.xlabel('Time, s')
-plt.title('Movement detection graph')
+plt.title('Movement detection graph for PIR-2 sensor')
 
 plt.show()
 
