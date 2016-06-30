@@ -45,18 +45,14 @@ GPIO.setup(pir2Pins['signal_pin'], GPIO.IN)
 GPIO.setup(pir2Pins['source_pin'], GPIO.OUT)
 GPIO.output(pir2Pins['source_pin'], GPIO.HIGH)	
 
-def xband(gpio_pins, out_raw_data, out_fr_trans_graph, out_detect_signal, exp_parameter):
+def xband(gpio_pins, out_raw_data, exp_parameter):
 
 	periods = []
 	temp = []
 	for i in range(2): temp.append([])
-	fr_trans_graph = []
-	for i in range(2): fr_trans_graph.append([])
 	raw_data = []
 	for i in range(2): raw_data.append([])
-	detect_signal = []
-	for i in range(4): detect_signal.append([])
-
+	
 	t_time = 0
 	slide_window = []
 	st_dev = 0
@@ -78,37 +74,23 @@ def xband(gpio_pins, out_raw_data, out_fr_trans_graph, out_detect_signal, exp_pa
 			periods.append(temp[1][-2]) 
 			if len(periods) > 1:
 				freq = 1/(periods[-1] - periods[-2])
-				fr_trans_graph[0].append(temp[1][-2])
-				fr_trans_graph[1].append(freq)
 				slide_window.append(freq)
-				
 				if len(slide_window) > 3:
-					slide_window = [] 
-
+					slide_window = []
 				if len(slide_window) == 3: 
 					st_dev = np.std(slide_window)			# standard deviation
 					mean_vol = np.mean(slide_window)
-
-				if mean_vol > exp_parameter['fr_level'] and st_dev <  exp_parameter['std_level']:
+				
+				#if mean_vol > exp_parameter['fr_level'] and st_dev <  exp_parameter['std_level']:
 					#GPIO.output(gpio_pins['LED_pin'], GPIO.HIGH)
-					detect_signal[0].append(t_time)
-					detect_signal[1].append(True)
-					detect_signal[2].append(mean_vol)
-					detect_signal[3].append(st_dev)
-				else:
+				#else:
 					#GPIO.output(gpio_pins['LED_pin'], GPIO.LOW)
-					detect_signal[0].append(t_time)
-					detect_signal[1].append(False)
-					detect_signal[2].append(mean_vol)
-					detect_signal[3].append(st_dev)
 				del periods[0]
 			del temp[0][:-1]
 			del temp[1][:-1]
-
+		time.sleep(0.001)
 	print 'X-Band finished'
 	out_raw_data.put(raw_data)
-	out_fr_trans_graph.put(fr_trans_graph)
-	out_detect_signal.put(detect_signal)
 
 
 def pir(gpio_pins, out_detect_signal, exp_parameter, name):
@@ -128,13 +110,11 @@ def pir(gpio_pins, out_detect_signal, exp_parameter, name):
 	out_detect_signal.put(detect_signal)
 
 xBand_raw_data_queue = Queue.Queue()
-xBand_fr_transform_queue = Queue.Queue()
-xBand_detect_signal_queue = Queue.Queue()
 pir1_detect_signal_queue = Queue.Queue()
 pir2_detect_signal_queue = Queue.Queue()
 
 
-xBandThread = threading.Thread(target = xband, args = 	(xBandPins, xBand_raw_data_queue, xBand_fr_transform_queue, xBand_detect_signal_queue, exp_parameter))
+xBandThread = threading.Thread(target = xband, args = 	(xBandPins, xBand_raw_data_queue,  exp_parameter))
 pir1Thread = threading.Thread(target = pir, args = (pir1Pins, pir1_detect_signal_queue, exp_parameter, 'pir1'))
 pir2Thread = threading.Thread(target = pir, args = (pir2Pins, pir2_detect_signal_queue, exp_parameter, 'pir2'))
 
@@ -147,8 +127,6 @@ pir1Thread.join()
 pir2Thread.join()
 
 xBand_raw_data = xBand_raw_data_queue.get()
-xBand_fr_transform = xBand_fr_transform_queue.get()
-xBand_detect_signal = xBand_detect_signal_queue.get()
 pir1_detect_signal = pir1_detect_signal_queue.get()
 pir2_detect_signal = pir2_detect_signal_queue.get()
 
@@ -162,15 +140,6 @@ file.write("row_data" + '\n')
 s = ' '
 for index in range(len(xBand_raw_data[0])): file.write(str(xBand_raw_data[0][index]) + s + str(xBand_raw_data[1][index]) + "\n")
 file.write("/end_of_row_data" + '\n')
-
-file.write("xBand_fr_transform" + '\n')
-for index in range(len(xBand_fr_transform[0])): file.write(str(xBand_fr_transform[0][index]) + s + str(xBand_fr_transform[1][index]) + "\n")
-file.write("/end_of_xBand_fr_transform" + '\n')
-
-file.write("xBand_detect_signal" + '\n')
-for index in range(len(xBand_detect_signal[0])):
-    file.write(str(xBand_detect_signal[0][index]) + s + str(xBand_detect_signal[1][index]) + s + str(xBand_detect_signal[2][index]) + s + str(xBand_detect_signal[3][index]) +"\n")
-file.write("/end_of_xBand_detect_signal" + '\n')
 
 file.write("pir1_detect_signal" + '\n')
 for index in range(len(pir1_detect_signal[0])):
