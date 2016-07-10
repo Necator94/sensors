@@ -17,6 +17,7 @@ slide_window = []
 st_dev = 0
 mean_vol = 0
 
+
 xBand_raw_time = []
 xBand_raw_data = []
 
