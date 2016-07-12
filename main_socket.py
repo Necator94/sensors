@@ -53,9 +53,7 @@ while True:
     print data
     # *******************
     args = data.split()
-    if args[0] == 'exit':
-        print 'exit'
-        break
+
     if len(args) < 4:
         exp_parameter = {'number': 'test', 'duration': 30, 'fr_level': 20, 'std_level': 15}
         print '______________________________________________'
@@ -64,7 +62,7 @@ while True:
             exp_parameter['std_level'], '\n')
     else:
         exp_parameter = {'duration': int(args[0]), 'fr_level': int(args[1]),
-                         'std_level':int(args[2]), 'number': int(args[3])}
+                         'std_level': int(args[2]), 'number': int(args[3])}
         print '______________________________________________'
         print "parameters are set manually:%snumber - %s%stime duration = %i s%sfr_level = %i%sstd_level = %i%s" % \
               ('\n', exp_parameter['number'], '\n', exp_parameter['duration'], '\n', exp_parameter['fr_level'], '\n',
