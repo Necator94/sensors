@@ -1,13 +1,11 @@
+#!/usr/bin/env python
+#plot graph
 import matplotlib
 import matplotlib.pyplot as plt
 import sys
 from matplotlib.gridspec import GridSpec
-from matplotlib.gridspec import GridSpec
-
 matplotlib.rcParams.update({"figure.figsize": (25.0, 13.0)})
-import random
 import numpy as np
-import math
 
 periods = []
 fr_trans_graph = []
@@ -32,7 +30,7 @@ pir1_detect_signal_flag = 'foo bar'
 pir2_detect_signal_flag = 'foo bar'
 exp_parameter_flag = 'foo bar'
 
-plot_data = open("plot_data_" + ".txt", "r")
+plot_data = open("plot_data_%s.data" % (sys.argv[1]), "r")
 for line in plot_data:
 
     if line == "row_data\n":
@@ -108,7 +106,7 @@ for i, element in enumerate(xBand_raw_data):
 
 gs1 = GridSpec(5, 2)
 gs1.update(left=0.03, right=0.98, wspace=0.1, hspace=0.5, bottom=0.05, top=0.96)
-
+#plt.suptitle(Experiment)
 raw_plt = plt.subplot(gs1[0])
 raw_plt.grid(color='#c1c1c1', linestyle=':', linewidth=1)
 raw_plt.plot(xBand_raw_time, xBand_raw_data, 'b')
@@ -175,5 +173,5 @@ plt.ylabel('Motion status')
 plt.xlabel('Time, s')
 plt.title('Movement detection graph for PIR-2 sensor')
 
-plt.savefig("response.png")
+plt.savefig("response_%s.png" % (sys.argv[1]))
 # plt.show()

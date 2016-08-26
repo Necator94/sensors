@@ -62,7 +62,7 @@ while True:
             exp_parameter['std_level'], '\n')
     else:
         exp_parameter = {'duration': int(args[0]), 'fr_level': int(args[1]),
-                         'std_level': int(args[2]), 'number': int(args[3])}
+                         'std_level': int(args[2]), 'number': str(args[3])}
         print '______________________________________________'
         print "parameters are set manually:%snumber - %s%stime duration = %i s%sfr_level = %i%sstd_level = %i%s" % \
               ('\n', exp_parameter['number'], '\n', exp_parameter['duration'], '\n', exp_parameter['fr_level'], '\n',
@@ -89,7 +89,7 @@ while True:
     pir1_detect_signal = pir1_detect_signal_queue.get()
     pir2_detect_signal = pir2_detect_signal_queue.get()
 
-    file = open("plot_data" + "_" + ".txt", "w")
+    file = open("/root/ex_data/plot_data_%s.data" %(exp_parameter['number']), "w")
     file.write("exp_parameter" + '\n')
     sym = ' '
     file.write \
