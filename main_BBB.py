@@ -6,7 +6,7 @@ import threading
 import Queue
 import sys
 import numpy as np
-import senlib
+import sen_lib_module
 
 # sys.argv[1] - time duration of the experiment
 # sys.argv[2] - mean frequency criteria of movment detection
@@ -109,9 +109,9 @@ xBand_raw_data_queue = Queue.Queue()
 pir1_detect_signal_queue = Queue.Queue()
 pir2_detect_signal_queue = Queue.Queue()
 
-xBandThread = threading.Thread(target=senlib.xband, args= (xBandPins, xBand_raw_data_queue,  exp_parameter))
-pir1Thread = threading.Thread(target = senlib.pir, args = (pir1Pins, pir1_detect_signal_queue, exp_parameter, 'pir1'))
-pir2Thread = threading.Thread(target = senlib.pir, args = (pir2Pins, pir2_detect_signal_queue, exp_parameter, 'pir2'))
+xBandThread = threading.Thread(target=sen_lib_module.xband, args= (xBandPins, xBand_raw_data_queue, exp_parameter))
+pir1Thread = threading.Thread(target = sen_lib_module.pir, args = (pir1Pins, pir1_detect_signal_queue, exp_parameter, 'pir1'))
+pir2Thread = threading.Thread(target = sen_lib_module.pir, args = (pir2Pins, pir2_detect_signal_queue, exp_parameter, 'pir2'))
 
 xBandThread.start()
 pir1Thread.start()

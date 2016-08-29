@@ -7,7 +7,15 @@ from matplotlib.gridspec import GridSpec
 matplotlib.rcParams.update({"figure.figsize": (25.0, 13.0)})
 import numpy as np
 import os
+import logging
 
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("plot_all")
+
+try:
+    sys.argv[1]
+except NameError:
+    logger.error('type argv[1] - as a folder name in processed data directory (../processed_data/folder_name)  ')
 
 out_path = '../processed_data/' + sys.argv[1] + '/'
 if os.path.exists(out_path):

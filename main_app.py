@@ -1,26 +1,30 @@
 #!/usr/bin/env python
+# Arguments to recieve by socket:
+# 0 - experiment duration;
+# 1 - frequency estimation criteria
+# 2 - standard deviation criteria
+# 3 - number of an experiment;
 
 import Adafruit_BBIO.GPIO as GPIO
 import threading
 import Queue
 import sys
 import socket
-import senlib
-#import logging
+import sen_lib_module
+import logging
 
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("main_app")
 
 # 0 - out pin     1 - LED pin
 xBandPins = {'signal_pin': 'P8_12', 'LED_pin': 'P8_11'}
-# pir1Pins = {'signal_pin' : 'P8_14', 'LED_pin' : 'P8_13' }
 pir1Pins = {'signal_pin': 'P8_15', 'LED_pin': 'P8_13'}
 pir2Pins = {'signal_pin': 'P8_17', 'source_pin': 'P8_18'}
 
-print 'Program starting...'
+logger.info('Program start')
 
 GPIO.setup(xBandPins['signal_pin'], GPIO.IN)
-# GPIO.setup(xBandPins['LED_pin'], GPIO.OUT)
 GPIO.setup(pir1Pins['signal_pin'], GPIO.IN)
-# GPIO.setup(pirPins['LED_pin'], GPIO.OUT)
 GPIO.setup(pir2Pins['signal_pin'], GPIO.IN)
 GPIO.setup(pir2Pins['source_pin'], GPIO.OUT)
 GPIO.output(pir2Pins['source_pin'], GPIO.HIGH)
@@ -29,29 +33,22 @@ xBand_raw_data_queue = Queue.Queue()
 pir1_detect_signal_queue = Queue.Queue()
 pir2_detect_signal_queue = Queue.Queue()
 
-# socket part
-# *******************
+# socket part**********************************************************************
 HOST = ''
 PORT = 5566
-
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-print 'Socket created'
-
+logger.info('Socket created')
 try:
     s.bind((HOST, PORT))
 except socket.error as msg:
-    print 'Bind failed. Error Code : ' + str(msg[0]) + ' Message ' + msg[1]
+    logger.error('Bind failed. Error Code : ' + str(msg[0]) + ' Message ' + msg[1])
     sys.exit()
-print 'Socket bind complete'
-
 while True:
     s.listen(10)
-    print 'Socket now listening'
+    logger.info('Socket now listening')
     conn, addr = s.accept()
-    # now keep talking with the client
     data = conn.recv(64)
-    print data
-    # *******************
+# **********************************************************************************
     args = data.split()
 
     if len(args) < 4:
@@ -68,27 +65,26 @@ while True:
               ('\n', exp_parameter['number'], '\n', exp_parameter['duration'], '\n', exp_parameter['fr_level'], '\n',
                exp_parameter['std_level'], '\n')
 
-    print 'Program starting...'
+    logger.info('Experiment start')
 
-    xBandThread = threading.Thread(target=senlib.xband, args=(xBandPins, xBand_raw_data_queue, exp_parameter))
-    pir1Thread = threading.Thread(target=senlib.pir, args=(pir1Pins, pir1_detect_signal_queue, exp_parameter, 'pir1'))
-    pir2Thread = threading.Thread(target=senlib.pir, args=(pir2Pins, pir2_detect_signal_queue, exp_parameter, 'pir2'))
-
+    xBandThread = threading.Thread(target=sen_lib_module.xband, args=(xBandPins, xBand_raw_data_queue, exp_parameter))
+    pir1Thread = threading.Thread(target=sen_lib_module.pir, args=(pir1Pins, pir1_detect_signal_queue, exp_parameter, 'pir1'))
+    pir2Thread = threading.Thread(target=sen_lib_module.pir, args=(pir2Pins, pir2_detect_signal_queue, exp_parameter, 'pir2'))
     xBandThread.start()
     pir1Thread.start()
     pir2Thread.start()
-
     xBandThread.join()
     pir1Thread.join()
     pir2Thread.join()
-    conn.close()
 
-    print "socket closed"
+    conn.close()
+    logger.info('Socket closed')
 
     xBand_raw_data = xBand_raw_data_queue.get()
     pir1_detect_signal = pir1_detect_signal_queue.get()
     pir2_detect_signal = pir2_detect_signal_queue.get()
 
+# results writing into 'args[3].data' file
     file = open("/root/ex_data/plot_data_%s.data" %(exp_parameter['number']), "w")
     file.write("exp_parameter" + '\n')
     sym = ' '

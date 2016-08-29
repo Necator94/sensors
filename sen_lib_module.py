@@ -1,8 +1,10 @@
 import time
 import Adafruit_BBIO.GPIO as GPIO
 import numpy as np
-import Queue
+import logging
 
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("senlib_module")
 
 def xband(gpio_pins, out_raw_data, exp_parameter):
     periods = []
@@ -15,8 +17,7 @@ def xband(gpio_pins, out_raw_data, exp_parameter):
     slide_window = []
     st_dev = 0
     mean_vol = 0
-
-    print 'X-Band started'
+    logger.info('X-Band started')
     startTime = time.time()
 
     while t_time < exp_parameter['duration']:
@@ -47,7 +48,7 @@ def xband(gpio_pins, out_raw_data, exp_parameter):
             del temp[0][:-1]
             del temp[1][:-1]
         time.sleep(0.001)
-    print 'X-Band finished'
+    logger.info('X-Band finished')
     out_raw_data.put(raw_data)
 
 
@@ -55,7 +56,7 @@ def pir(gpio_pins, out_detect_signal, exp_parameter, name):
     t_time = 0
     detect_signal = []
     for i in range(2): detect_signal.append([])
-    print name, 'started'
+    logger.info(name + ' started')
 
     startTime = time.time()
     while t_time < exp_parameter['duration']:
@@ -64,5 +65,5 @@ def pir(gpio_pins, out_detect_signal, exp_parameter, name):
         detect_signal[0].append(t_time)
         detect_signal[1].append(check)
         time.sleep(0.1)
-    print name, 'finished'
+    logger.info(name + ' finished')
     out_detect_signal.put(detect_signal)
