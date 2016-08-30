@@ -16,7 +16,6 @@ try:
     sys.argv[1]
 except NameError:
     logger.error('type argv[1] - as a folder name in processed data directory (../processed_data/folder_name)  ')
-
 out_path = '../processed_data/' + sys.argv[1] + '/'
 if os.path.exists(out_path):
     print "path exists, + new folder created"
@@ -73,8 +72,8 @@ for file in os.listdir("."):
                 continue
             if pir1_detect_signal_flag == True:
                 string = line.split()
-                pir1_detect_time.append(string[0])
-                pir1_detect_status.append(string[1])
+                pir1_detect_time.append(float(string[0]))
+                pir1_detect_status.append(int(string[1]))
 
             if line == "pir2_detect_signal\n":
                 pir2_detect_signal_flag = True
@@ -84,9 +83,9 @@ for file in os.listdir("."):
                 continue
             if pir2_detect_signal_flag == True:
                 string = line.split()
-                pir2_detect_time.append(string[0])
+                pir2_detect_time.append(float(string[0]))
                 pir2_detect_status.append(int(string[1]))
-
+            '''
             if line == "exp_parameter\n":
                 exp_parameter_flag = True
                 continue
@@ -98,6 +97,14 @@ for file in os.listdir("."):
                 duration = int(string[0])
                 meanlevel = int(string[1])
                 stdlevel = int(string[2])
+
+            '''
+        duration = max(xBand_raw_time)
+#        meanlevel = 20
+#        stdlevel = 15
+        meanlevel = int(sys.argv[1][:2])
+        stdlevel = int(sys.argv[1][-2:])
+
 
         for i, element in enumerate(xBand_raw_data):
             if i > 1 and xBand_raw_data[i] > xBand_raw_data[i - 1]:
@@ -125,23 +132,28 @@ for file in os.listdir("."):
                         detect_signal[3].append(st_dev)
                     del periods[0]
 
-        gs1 = GridSpec(5, 2)
-        gs1.update(left=0.03, right=0.98, wspace=0.1, hspace=0.7, bottom=0.05, top=0.93)
+        gs1 = GridSpec(4, 2)
+        gs1.update(left=0.03, right=0.98, wspace=0.1, hspace=0.6, bottom=0.05, top=0.93)
         plt.suptitle('Sensor response for ' + file[10:-5] + ' meters', fontsize=20)
         raw_plt = plt.subplot(gs1[0])
         raw_plt.grid(color='#c1c1c1', linestyle=':', linewidth=1)
         raw_plt.plot(xBand_raw_time, xBand_raw_data, 'b')
-        plt.axis([0, duration, 0, 1.1])  # limits can be taken from metadata
+        plt.yticks(np.arange(0, 1.1, 1.0))
+        plt.axis([0, duration, 0, max(xBand_raw_data) + 0.1])  # limits can be taken from metadata
         plt.ylabel('Motion status')
         plt.xlabel('Time, s')
-        plt.title('Raw X-Band detector signal')
+        ttl = raw_plt.title
+        ttl.set_position([.5, 1.05])
+        plt.title('Raw X-Band sensor signal')
 
         fr_tr_plt = plt.subplot(gs1[1])
         fr_tr_plt.grid(color='#c1c1c1', linestyle=':', linewidth=1)
         fr_tr_plt.plot(fr_trans_graph[0], fr_trans_graph[1], 'b', linewidth=2)
         plt.ylabel('Movement intensity')
         plt.xlabel('Time, s')
-        plt.title('Frequency transformation graph')
+        ttl = fr_tr_plt.title
+        ttl.set_position([.5, 1.05])
+        plt.title('Frequency transformation graph for raw X-Band sensor signal ')
 
         meanCr = []  # estimation level for mean value
         for i in enumerate(detect_signal[2]):
@@ -150,52 +162,66 @@ for file in os.listdir("."):
         for i in enumerate(detect_signal[3]):
             stdCr.append(stdlevel)  # from metadata
 
-        detect_plt = plt.subplot(gs1[1, :])
+        gs2 = GridSpec(4, 1)
+        gs2.update(left=0.03, right=0.98, wspace=0.1, hspace=0.6, bottom=0.05, top=0.93)
+
+        detect_plt = plt.subplot(gs2[1])
         detect_plt.grid(color='#c1c1c1', linestyle=':', linewidth=1)
-        detect_plt.plot(detect_signal[0], detect_signal[2], 'k', linestyle='-', linewidth=1, label="mean value of the signal")
-        detect_plt.plot(detect_signal[0], meanCr, 'k', linestyle='--', linewidth=2)
-        detect_plt.plot(detect_signal[0], detect_signal[3], 'g', linestyle='-', linewidth=1,
-                        label="standard deviation value of the signal")
-        detect_plt.plot(detect_signal[0], stdCr, 'g', linestyle='--', linewidth=2)
-        #plt.legend(loc='upper left', frameon=False)
-        plt.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc=3,
-                   ncol=2, mode="expand", borderaxespad=0.)
+        detect_plt.plot(detect_signal[0], detect_signal[2], 'k', linestyle='-', linewidth=2, label="Mean value of the signal")
+        detect_plt.plot(detect_signal[0], meanCr, 'k', linestyle='--', linewidth=2, label="Mean value citeria level = " + str(meanlevel) )
+        detect_plt.plot(detect_signal[0], detect_signal[3], 'g', linestyle='-', linewidth=2, label="Standard deviation value of the signal")
+        detect_plt.plot(detect_signal[0], stdCr, 'g', linestyle='--', linewidth=2, label="Standard deviation criteria level = " + str(stdlevel))
+        plt.xticks(np.arange(0, max(detect_signal[0]) + 1, 1.0))
+        plt.axis([0, duration, 0, max(max(detect_signal[2]), max(detect_signal[3])) + 10])  # limits can be taken from metadata
+        plt.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc=3, ncol=4, mode="expand", borderaxespad=0.)
         plt.ylabel('Relative values')
         plt.xlabel('Time, s')
+        ttl = detect_plt.title
+        ttl.set_position([.5, 1.2])
         plt.title('Mean and standard deviation values of processed signal')
-
-        pl = plt.subplot(gs1[2, :])
-        pl.grid(color='#c1c1c1', linestyle=':', linewidth=1)
-        pl.plot(detect_signal[0], detect_signal[1], 'b', linewidth=4)
-        plt.axis([0, duration, 0, 1.1])  # limits can be taken from metadata
-        plt.legend(loc='upper left', frameon=False)
-
-        plt.ylabel('Motion status')
-        plt.xlabel('Time, s')
-        plt.title('Movement detection graph for radar sensor')
-
-        pir1_plt = plt.subplot(gs1[3, :])
-        pir1_plt.grid(color='#c1c1c1', linestyle=':', linewidth=1)
-        pir1_plt.plot(pir1_detect_time, pir1_detect_status, 'r', linestyle='-', linewidth=4)
-        plt.axis([0, duration, 0, 1.1])  # limits can be taken from metadata
-        plt.legend(loc='upper left', frameon=False)
-        plt.ylabel('Motion status')
-        plt.xlabel('Time, s')
-        plt.title('Movement detection graph for PIR-1 sensor')
 
         for i, element in enumerate(pir2_detect_status):
             if element == 1:
                 pir2_detect_status[i] = 0
             else:
                 pir2_detect_status[i] = 1
-        pir2_plt = plt.subplot(gs1[4, :])
+
+        gs3 = GridSpec(7, 1)
+        gs3.update(left=0.03, right=0.98, wspace=0.1, hspace=0.6, bottom=0.05, top=1.1)
+        pl = plt.subplot(gs3[4])
+        pl.grid(color='#c1c1c1', linestyle=':', linewidth=1)
+        pl.plot(detect_signal[0], detect_signal[1], 'b', linewidth=4, label = "X-Band sensor detection status")
+        plt.axis([0, duration, 0, 1.1])  # limits can be taken from metadata
+        plt.yticks(np.arange(0, max(detect_signal[1]) + 0.1, 1.0))
+        plt.xticks(np.arange(0, max(detect_signal[0]), 1.0))
+        plt.ylabel('Motion status')
+        plt.xlabel('Time, s')
+        ttl = pl.title
+        ttl.set_position([.5, 1.0])
+        plt.title('Movement detection graph for radar sensor')
+
+        pir1_plt = plt.subplot(gs3[5])
+        pir1_plt.grid(color='#c1c1c1', linestyle=':', linewidth=1)
+        pir1_plt.plot(pir1_detect_time, pir1_detect_status, 'r', linestyle='-', linewidth=4)
+        plt.axis([0, duration, 0, 1.1])  # limits can be taken from metadata
+        plt.legend(loc='upper left', frameon=False)
+        plt.ylabel('Motion status')
+        plt.xlabel('Time, s')
+        plt.yticks(np.arange(0, max(pir1_detect_status) + 0.1, 1.0))
+        plt.xticks(np.arange(0, max(pir1_detect_time), 1.0))
+        plt.title('Movement detection graph for PIR-1 sensor')
+
+        pir2_plt = plt.subplot(gs3[6])
         pir2_plt.grid(color='#c1c1c1', linestyle=':', linewidth=1)
         pir2_plt.plot(pir2_detect_time, pir2_detect_status, '#ff9900', linestyle='-', linewidth=4)
         plt.axis([0, duration, 0, 1.1])  # limits can be taken from metadata
         plt.legend(loc='upper left', frameon=False)
         plt.ylabel('Motion status')
         plt.xlabel('Time, s')
+        plt.yticks(np.arange(0, max(pir2_detect_status) + 0.1, 1.0))
+        plt.xticks(np.arange(0, max(pir2_detect_time), 1.0))
         plt.title('Movement detection graph for PIR-2 sensor')
+
         plt.savefig(out_path + file[10:-5] + '.png')
-        os.rename(file, out_path + file)
-        # plt.show()
+#        os.rename(file, out_path + file)
+#        plt.show()

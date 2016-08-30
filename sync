@@ -1,0 +1,2 @@
+rsync -avzh --delete --exclude '.git'  --exclude '.idea' fila@10.42.0.1:/home/fila/PycharmProjects/sensors /root/
+rsync -avzh --delete /root/ex_data fila@10.42.0.1:/home/fila

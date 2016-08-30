@@ -4,7 +4,6 @@
 # 1 - frequency estimation criteria
 # 2 - standard deviation criteria
 # 3 - number of an experiment;
-
 import Adafruit_BBIO.GPIO as GPIO
 import threading
 import Queue
